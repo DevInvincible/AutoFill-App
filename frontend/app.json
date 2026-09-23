@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "AI Job Agent",
+    "slug": "ai-job-agent",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "aijobagent",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aijobagent.app"
+    },
+    "android": {
+      "package": "com.aijobagent.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F1117",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ee261cb5-d215-4c22-84ec-098f8d87293f"
+      }
+    }
+  }
+}
