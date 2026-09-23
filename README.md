@@ -1,6 +1,80 @@
 # AutoFill App 🚀
 
-An intelligent Auto-Fill application that leverages AI to automatically parse job descriptions and fill out complex forms.
+An intelligent, AI-driven application that completely automates the tedious process of applying for jobs. Simply provide your profile and a job link, and the system handles the rest—navigating the page, understanding the form fields, mapping your profile to the requirements, and submitting the application.
+
+---
+
+## 🏗 High-Level Architecture
+
+The system is split between a React Native mobile application and a powerful Python backend that orchestrates a LangGraph AI agent and Playwright for headless browser automation.
+
+```mermaid
+graph TD
+    %% Entities
+    User((User))
+    App[📱 React Native App]
+    API[⚡ FastAPI Backend]
+    Redis[(🗄️ Redis Session Store)]
+    
+    %% AI & Automation Layer
+    LangGraph[🧠 LangGraph Orchestrator]
+    Gemini[🤖 Google GenAI Gemini]
+    Playwright[🌐 Playwright Browser]
+    TargetSite((🎯 Target Job Site))
+
+    %% Flow
+    User -->|Enters Profile & Job URL| App
+    App -->|POST /api/jobs| API
+    API -->|Save Job State| Redis
+    API -.->|Spawns Background Task| LangGraph
+    
+    %% Agent loop
+    LangGraph <-->|Parses Context & Decides Actions| Gemini
+    LangGraph <-->|Navigates, Extracts DOM, Fills Forms| Playwright
+    Playwright <-->|Interacts with Webpage| TargetSite
+    
+    %% Status checking
+    App -->|Polls GET /api/jobs/{id}| API
+    API -->|Reads State| Redis
+```
+
+---
+
+## 🔄 The AI Form Filling Flow (LangGraph)
+
+When a job is submitted, the backend doesn't just run a simple script. It spins up a **LangGraph Agent** that intelligently reacts to the webpage it is looking at. 
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Backend as FastAPI
+    participant Agent as LangGraph Agent
+    participant AI as Gemini AI
+    participant Browser as Playwright
+
+    User->>Backend: Submit Job URL & Profile
+    Backend->>Agent: Initialize Automation Task
+    
+    Agent->>Browser: Go to Job URL
+    Browser-->>Agent: Returns HTML/DOM Structure
+    
+    Agent->>AI: Analyze this webpage and my profile
+    AI-->>Agent: "I found a job form. Here are the fields we need to fill."
+    
+    Agent->>AI: How should we map the user profile to these fields?
+    AI-->>Agent: "Map Name to input#1, Resume to input#2, etc."
+    
+    Agent->>Browser: Execute Fill Commands (Type text, Upload files)
+    Browser-->>Agent: Form Filled
+    
+    Agent->>Browser: Click Submit!
+    Browser-->>Agent: Success/Confirmation Page
+    
+    Agent->>Backend: Update Job Status to "Completed"
+    Backend-->>User: Notification: "Job Applied Successfully!"
+```
+
+---
 
 ## 🛠 Tech Stack
 
