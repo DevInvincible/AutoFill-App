@@ -34,7 +34,7 @@ graph TD
     Playwright <-->|Interacts with Webpage| TargetSite
     
     %% Status checking
-    App -->|Polls GET /api/jobs/{id}| API
+    App -->|Polls GET /api/jobs/[id]| API
     API -->|Reads State| Redis
 ```
 
