@@ -35,7 +35,7 @@ def get_browser_page(thread_id: str):
     if thread_id not in _active_playwrights:
         _active_playwrights[thread_id] = sync_playwright().start()
 
-    is_headless = os.getenv("PLAYWRIGHT_HEADLESS", "False").lower() in ("true", "1", "yes")
+    is_headless = os.getenv("PLAYWRIGHT_HEADLESS", "True").lower() in ("true", "1", "yes")
 
     if thread_id not in _active_contexts:
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
@@ -67,11 +67,12 @@ def get_browser_page(thread_id: str):
     return _active_pages[thread_id]
 
 def inspect_page_sync(url: str):
+    is_headless = os.getenv("PLAYWRIGHT_HEADLESS", "True").lower() in ("true", "1", "yes")
     with sync_playwright() as p:
 
         context = p.chromium.launch_persistent_context(
             user_data_dir="./browser_data",
-            headless=False,
+            headless=is_headless,
             args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
