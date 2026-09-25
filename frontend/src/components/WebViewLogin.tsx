@@ -14,7 +14,7 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
   const [loading, setLoading] = useState(true);
   const webviewRef = useRef<WebView>(null);
 
-  const performSave = async () => {
+  const checkLoginSuccess = async (currentUrl: string) => {
     try {
       const urlObj = new URL(url);
       const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
@@ -22,51 +22,43 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
       const cookies = await CookieManager.get(baseUrl);
       
       if (Object.keys(cookies).length > 0) {
-        const playwrightCookies = Object.keys(cookies).map(key => ({
-          name: cookies[key].name,
-          value: cookies[key].value,
-          url: baseUrl,
-          secure: cookies[key].secure ?? true,
-          httpOnly: cookies[key].httpOnly ?? false,
-        }));
+        // Find if we have any high-value auth cookies (common names)
+        // or if we just have a lot of cookies (usually means logged in)
+        const hasAuthCookie = Object.keys(cookies).some(name => 
+          name.includes('session') || name === 'li_at' || name.includes('auth') || name.includes('token')
+        );
         
-        const existingData = await AsyncStorage.getItem('universal_cookies');
-        const allCookies = existingData ? JSON.parse(existingData) : {};
-        
-        // Normalize domain by removing www.
-        const domainKey = urlObj.hostname.replace('www.', '');
-        allCookies[domainKey] = playwrightCookies;
-        
-        await AsyncStorage.setItem('universal_cookies', JSON.stringify(allCookies));
-        
-        onSuccess(playwrightCookies);
-      } else {
-        Alert.alert("No Cookies Found", "We couldn't detect any login session. Please try logging in again.");
+        // If we have an auth cookie OR more than 5 cookies (which usually means a full session), we succeed
+        if (hasAuthCookie || Object.keys(cookies).length > 5) {
+          const playwrightCookies = Object.keys(cookies).map(key => ({
+            name: cookies[key].name,
+            value: cookies[key].value,
+            url: baseUrl,
+            secure: cookies[key].secure ?? true,
+            httpOnly: cookies[key].httpOnly ?? false,
+          }));
+          
+          const existingData = await AsyncStorage.getItem('universal_cookies');
+          const allCookies = existingData ? JSON.parse(existingData) : {};
+          
+          const domainKey = urlObj.hostname.replace('www.', '');
+          allCookies[domainKey] = playwrightCookies;
+          
+          await AsyncStorage.setItem('universal_cookies', JSON.stringify(allCookies));
+          onSuccess(playwrightCookies);
+          return true;
+        }
       }
     } catch (e) {
-      console.log('Error checking cookies', e);
-      onCancel();
+      console.log('Error checking cookies automatically', e);
     }
-  };
-
-  const handleSaveLogin = () => {
-    Alert.alert(
-      "Confirm Login",
-      "Have you successfully logged into your account and can see your dashboard?",
-      [
-        { text: "No, let me finish", style: "cancel" },
-        { text: "Yes, I'm logged in", onPress: performSave }
-      ]
-    );
+    return false;
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Secure Login</Text>
-        <TouchableOpacity onPress={handleSaveLogin} style={styles.saveBtn}>
-          <Text style={styles.saveText}>Save Login</Text>
-        </TouchableOpacity>
         <TouchableOpacity onPress={onCancel} style={styles.cancelBtn}>
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
@@ -84,6 +76,22 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         style={styles.webview}
         onLoadStart={() => setLoading(true)}
         onLoadEnd={() => setLoading(false)}
+        onNavigationStateChange={(navState) => {
+          const currentUrl = navState.url.toLowerCase();
+          const isLoginPage = currentUrl.includes('login') || 
+                              currentUrl.includes('signup') || 
+                              currentUrl.includes('auth') || 
+                              currentUrl.includes('checkpoint') ||
+                              currentUrl.includes('challenge');
+                              
+          // If we are navigating away from a login page to a non-login page, we probably succeeded!
+          if (!isLoginPage && !loading) {
+            // Check immediately, and check again in 2 seconds to ensure cookies are fully set
+            checkLoginSuccess(currentUrl).then(success => {
+              if (!success) setTimeout(() => checkLoginSuccess(currentUrl), 2000);
+            });
+          }
+        }}
         incognito={true}
         sharedCookiesEnabled={true}
       />
@@ -115,17 +123,6 @@ const styles = StyleSheet.create({
   cancelText: {
     color: '#E53E3E',
     fontSize: 16,
-  },
-  saveBtn: {
-    padding: 8,
-    marginRight: 10,
-    backgroundColor: '#6B46C1',
-    borderRadius: 8,
-  },
-  saveText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   webview: {
     flex: 1,
