@@ -35,7 +35,8 @@ def get_browser_page(thread_id: str):
     if thread_id not in _active_playwrights:
         _active_playwrights[thread_id] = sync_playwright().start()
 
-    is_headless = os.getenv("PLAYWRIGHT_HEADLESS", "True").lower() in ("true", "1", "yes")
+    # Force headless mode in cloud to prevent XServer crashes
+    is_headless = True
 
     if thread_id not in _active_contexts:
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
@@ -67,7 +68,8 @@ def get_browser_page(thread_id: str):
     return _active_pages[thread_id]
 
 def inspect_page_sync(url: str, cookies: list[dict] = None):
-    is_headless = os.getenv("PLAYWRIGHT_HEADLESS", "True").lower() in ("true", "1", "yes")
+    # Force headless mode in cloud to prevent XServer crashes
+    is_headless = True
     with sync_playwright() as p:
 
         context = p.chromium.launch_persistent_context(
