@@ -33,7 +33,10 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         
         const existingData = await AsyncStorage.getItem('universal_cookies');
         const allCookies = existingData ? JSON.parse(existingData) : {};
-        allCookies[urlObj.hostname] = playwrightCookies;
+        
+        // Normalize domain by removing www.
+        const domainKey = urlObj.hostname.replace('www.', '');
+        allCookies[domainKey] = playwrightCookies;
         
         await AsyncStorage.setItem('universal_cookies', JSON.stringify(allCookies));
         

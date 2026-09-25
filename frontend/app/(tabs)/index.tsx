@@ -132,7 +132,8 @@ export default function HomeScreen() {
     let cookies;
     try {
       const urlObj = new URL(url.trim());
-      cookies = allCookies[urlObj.hostname];
+      const domainKey = urlObj.hostname.replace('www.', '');
+      cookies = allCookies[domainKey] || allCookies['www.' + domainKey] || allCookies[urlObj.hostname];
     } catch (e) {
       cookies = undefined;
     }
