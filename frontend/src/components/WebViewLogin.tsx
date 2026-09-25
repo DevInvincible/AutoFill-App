@@ -14,6 +14,12 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
   const [loading, setLoading] = useState(true);
   const webviewRef = useRef<WebView>(null);
 
+  // Fallback to hide loading spinner if site gets stuck
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const checkLoginSuccess = async (currentUrl: string) => {
     try {
       const urlObj = new URL(url);
@@ -95,6 +101,7 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         }}
         incognito={true}
         sharedCookiesEnabled={true}
+        userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
       />
     </SafeAreaView>
   );
