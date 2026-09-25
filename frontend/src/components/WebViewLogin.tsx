@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import CookieManager from '@preeternal/react-native-cookie-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,7 +14,7 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
   const [loading, setLoading] = useState(true);
   const webviewRef = useRef<WebView>(null);
 
-  const handleSaveLogin = async () => {
+  const performSave = async () => {
     try {
       const urlObj = new URL(url);
       const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
@@ -39,13 +39,23 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         
         onSuccess(playwrightCookies);
       } else {
-        // No cookies found at all
-        onSuccess([]);
+        Alert.alert("No Cookies Found", "We couldn't detect any login session. Please try logging in again.");
       }
     } catch (e) {
       console.log('Error checking cookies', e);
       onCancel();
     }
+  };
+
+  const handleSaveLogin = () => {
+    Alert.alert(
+      "Confirm Login",
+      "Have you successfully logged into your account and can see your dashboard?",
+      [
+        { text: "No, let me finish", style: "cancel" },
+        { text: "Yes, I'm logged in", onPress: performSave }
+      ]
+    );
   };
 
   return (

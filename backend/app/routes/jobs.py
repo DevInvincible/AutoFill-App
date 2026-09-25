@@ -46,7 +46,7 @@ router = APIRouter(
 
 @router.post("/analyze")
 async def analyze_job(data: JobAnalyzeRequest):
-    if not data.url.startswith(("http://", "https://")):
+    if not str(data.url).startswith(("http://", "https://")):
         return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
     
     try:
@@ -68,7 +68,7 @@ async def analyze_job(data: JobAnalyzeRequest):
 
 @router.post("/apply")
 async def apply_to_job(data: JobAnalyzeRequest):
-    if not data.url.startswith(("http://", "https://")):
+    if not str(data.url).startswith(("http://", "https://")):
         return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
     try:
         result = await click_apply(
