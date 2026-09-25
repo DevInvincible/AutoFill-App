@@ -25,8 +25,7 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         const playwrightCookies = Object.keys(cookies).map(key => ({
           name: cookies[key].name,
           value: cookies[key].value,
-          domain: cookies[key].domain || `.${urlObj.hostname.replace('www.', '')}`,
-          path: cookies[key].path || '/',
+          url: baseUrl,
           secure: cookies[key].secure ?? true,
           httpOnly: cookies[key].httpOnly ?? false,
         }));

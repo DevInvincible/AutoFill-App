@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -37,11 +37,21 @@ interface ActiveJob {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ resumeUrl?: string }>();
+  
   const [url, setUrl] = useState('');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [isUrlFocused, setIsUrlFocused] = useState(false);
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
+
+  useEffect(() => {
+    if (params.resumeUrl && profile && !loading) {
+      setUrl(params.resumeUrl);
+      router.setParams({ resumeUrl: '' }); // Clear it to prevent looping
+      handleApply(params.resumeUrl);
+    }
+  }, [params.resumeUrl, profile]);
 
   useFocusEffect(
     useCallback(() => {
@@ -104,8 +114,10 @@ export default function HomeScreen() {
     return finalStatus === 'granted';
   };
 
-  const handleApply = async () => {
-    if (!url.trim()) {
+  const handleApply = async (overrideUrl?: string) => {
+    const jobUrl = overrideUrl || url;
+    
+    if (!jobUrl.trim()) {
       Alert.alert('Missing URL', 'Please paste a valid job application URL.');
       return;
     }
@@ -131,14 +143,14 @@ export default function HomeScreen() {
     // Find cookies for the target job's domain
     let cookies;
     try {
-      const urlObj = new URL(url.trim());
+      const urlObj = new URL(jobUrl.trim());
       const domainKey = urlObj.hostname.replace('www.', '');
       cookies = allCookies[domainKey] || allCookies['www.' + domainKey] || allCookies[urlObj.hostname];
     } catch (e) {
       cookies = undefined;
     }
     
-    applyToJob(url.trim(), profile, cookies).then(async (result) => {
+    applyToJob(jobUrl.trim(), profile, cookies).then(async (result) => {
       setLoading(false);
       setUrl('');
       
@@ -147,7 +159,7 @@ export default function HomeScreen() {
           content: {
             title: 'Authentication Required',
             body: 'Please log in to the job portal to continue the application process.',
-            data: { route: '/login', params: { url: result.login_url || url } },
+            data: { route: '/login', params: { url: result.login_url || jobUrl, resumeUrl: jobUrl } },
           },
           trigger: null,
         });
@@ -169,7 +181,7 @@ export default function HomeScreen() {
       if (result.thread_id) {
         await saveActiveJob({
           thread_id: result.thread_id,
-          url: result.url || url,
+          url: result.url || jobUrl,
           title: result.title || 'Job Application',
           status: 'Needs Review',
           timestamp: Date.now(),

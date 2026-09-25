@@ -7,7 +7,7 @@ import { Colors } from '../src/theme/colors';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { url } = useLocalSearchParams<{ url: string }>();
+  const { url, resumeUrl } = useLocalSearchParams<{ url: string, resumeUrl?: string }>();
   // Default to LinkedIn if no URL provided
   const targetUrl = url || 'https://www.linkedin.com/login';
 
@@ -26,8 +26,11 @@ export default function LoginScreen() {
       console.log('Failed to save connected accounts state', e);
     }
 
-    // Go back to the previous screen now that cookies are saved
-    router.back();
+    if (resumeUrl) {
+      router.replace({ pathname: '/', params: { resumeUrl } });
+    } else {
+      router.back();
+    }
   };
 
   return (
