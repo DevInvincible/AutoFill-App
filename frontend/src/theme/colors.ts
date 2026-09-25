@@ -6,9 +6,9 @@ export const Colors = {
   bgInput: 'rgba(15, 15, 20, 0.8)',
 
   // High-Contrast Neon Accents
-  accentStart: '#00F0FF', // Cyberpunk Cyan
-  accentEnd: '#7000FF', // Electric Purple
-  accent: '#00F0FF',
+  accentStart: '#007AFF', // Expo Blue
+  accentEnd: '#0055FF', // Deep Blue
+  accent: '#007AFF',
 
   // Status colors with vibrant neon tones
   success: '#00FF9D',

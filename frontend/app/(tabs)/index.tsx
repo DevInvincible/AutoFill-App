@@ -11,6 +11,7 @@ import {
   Platform,
   Clipboard,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -124,7 +125,19 @@ export default function HomeScreen() {
 
     setLoading(true);
     
-    applyToJob(url.trim(), profile).then(async (result) => {
+    const cookieData = await AsyncStorage.getItem('universal_cookies');
+    const allCookies = cookieData ? JSON.parse(cookieData) : {};
+    
+    // Find cookies for the target job's domain
+    let cookies;
+    try {
+      const urlObj = new URL(url.trim());
+      cookies = allCookies[urlObj.hostname];
+    } catch (e) {
+      cookies = undefined;
+    }
+    
+    applyToJob(url.trim(), profile, cookies).then(async (result) => {
       setLoading(false);
       setUrl('');
       
@@ -206,9 +219,15 @@ export default function HomeScreen() {
       >
         <Animated.View entering={FadeInUp.duration(600).springify()}>
           <View style={styles.headerSection}>
-            <View style={styles.badgeContainer}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.badgeText}>Agent Active</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Image 
+                source={require('../../assets/icon.png')} 
+                style={{ width: 44, height: 44, borderRadius: 12, marginRight: 12 }} 
+              />
+              <View style={styles.badgeContainer}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.badgeText}>Agent Active</Text>
+              </View>
             </View>
             <Text style={styles.title}>ApplyFaster</Text>
             <Text style={styles.subtitle}>Let AI handle the repetitive forms.</Text>
@@ -324,7 +343,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginBottom: 16,
     gap: 6,
   },
   pulseDot: {

@@ -50,7 +50,7 @@ async def analyze_job(data: JobAnalyzeRequest):
         return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
     
     try:
-        page_data = await inspect_page(str(data.url))
+        page_data = await inspect_page(str(data.url), data.cookies)
 
         apply_elements = find_apply_elements(page_data)
 
@@ -74,6 +74,7 @@ async def apply_to_job(data: JobAnalyzeRequest):
         result = await click_apply(
             str(data.url),
             data.profile,
+            data.cookies,
         )
 
         return result

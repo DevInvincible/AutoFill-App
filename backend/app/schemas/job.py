@@ -7,6 +7,7 @@ class JobAnalyzeRequest(BaseModel):
 
     url: HttpUrl
     profile: UserProfile
+    cookies: list[dict] | None = None
 
 
 class JobResponse(BaseModel):

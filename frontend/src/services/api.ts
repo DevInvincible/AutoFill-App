@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Set this in your .env file or environment variables for production (e.g. EXPO_PUBLIC_API_URL=https://api.yourdomain.com)
 // Otherwise it defaults to localhost for development.
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://autofill-app-production.up.railway.app';
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'default-dev-secret-key-12345';
 
 const api = axios.create({
@@ -89,11 +89,13 @@ export interface FillResponse {
 
 export async function applyToJob(
   url: string,
-  profile: UserProfile
+  profile: UserProfile,
+  cookies?: any[]
 ): Promise<ApplyResponse> {
   const response = await api.post('/jobs/apply', {
     url,
     profile,
+    cookies,
   });
   return response.data;
 }

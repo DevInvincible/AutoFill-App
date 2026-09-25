@@ -66,7 +66,7 @@ def get_browser_page(thread_id: str):
 
     return _active_pages[thread_id]
 
-def inspect_page_sync(url: str):
+def inspect_page_sync(url: str, cookies: list[dict] = None):
     is_headless = os.getenv("PLAYWRIGHT_HEADLESS", "True").lower() in ("true", "1", "yes")
     with sync_playwright() as p:
 
@@ -76,6 +76,12 @@ def inspect_page_sync(url: str):
             args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
+        
+        if cookies:
+            try:
+                context.add_cookies(cookies)
+            except Exception as e:
+                print(f"Failed to add cookies in inspect: {e}")
 
         print("PLAYWRIGHT BROWSER STARTED")
 
@@ -178,8 +184,17 @@ def click_apply_sync(
     thread_id: str,
     url: str,
     profile: UserProfile,
+    cookies: list[dict] = None,
 ):
     page = get_browser_page(thread_id)
+    
+    if cookies:
+        try:
+            page.context.add_cookies(cookies)
+            print(f"Injected {len(cookies)} cookies into the browser context.")
+        except Exception as e:
+            print(f"Failed to add cookies: {e}")
+
 
     try:
         page.goto(
@@ -1041,18 +1056,20 @@ def extract_form(page):
         "custom_dropdowns": custom_dropdowns,
     }
             
-async def inspect_page(url: str):
+async def inspect_page(url: str, cookies: list[dict] = None):
     loop = asyncio.get_running_loop()
 
     return await loop.run_in_executor(
         executor,
         inspect_page_sync,
-        url
+        url,
+        cookies
     )
 
 async def click_apply(
     url: str,
     profile: UserProfile,
+    cookies: list[dict] = None,
 ):
     loop = asyncio.get_running_loop()
     thread_id = str(uuid.uuid4())
@@ -1063,6 +1080,7 @@ async def click_apply(
         thread_id,
         url,
         profile,
+        cookies,
     )
 
 
