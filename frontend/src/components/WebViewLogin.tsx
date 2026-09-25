@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import CookieManager from '@preeternal/react-native-cookie-manager';
@@ -24,17 +24,17 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
     try {
       const urlObj = new URL(url);
       const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
-      
+
       // Pass true as second argument to use WKHTTPCookieStore on iOS for modern WebViews
       const cookies = await CookieManager.get(baseUrl, true);
-      
+
       if (Object.keys(cookies).length > 0) {
         // Find if we have any high-value auth cookies (common names)
         // or if we just have a lot of cookies (usually means logged in)
-        const hasAuthCookie = Object.keys(cookies).some(name => 
+        const hasAuthCookie = Object.keys(cookies).some(name =>
           name.includes('session') || name === 'li_at' || name.includes('auth') || name.includes('token')
         );
-        
+
         // If we have an auth cookie OR more than 5 cookies (which usually means a full session), we succeed
         if (hasAuthCookie || Object.keys(cookies).length > 5) {
           const playwrightCookies = Object.keys(cookies).map(key => ({
@@ -44,13 +44,13 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
             secure: cookies[key].secure ?? true,
             httpOnly: cookies[key].httpOnly ?? false,
           }));
-          
+
           const existingData = await AsyncStorage.getItem('universal_cookies');
           const allCookies = existingData ? JSON.parse(existingData) : {};
-          
+
           const domainKey = urlObj.hostname.replace('www.', '');
           allCookies[domainKey] = playwrightCookies;
-          
+
           await AsyncStorage.setItem('universal_cookies', JSON.stringify(allCookies));
           onSuccess(playwrightCookies);
           return true;
@@ -70,7 +70,7 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
       </View>
-      
+
       {loading && (
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#6B46C1" />
@@ -85,12 +85,12 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         onLoadEnd={() => setLoading(false)}
         onNavigationStateChange={(navState) => {
           const currentUrl = navState.url.toLowerCase();
-          const isLoginPage = currentUrl.includes('login') || 
-                              currentUrl.includes('signup') || 
-                              currentUrl.includes('auth') || 
-                              currentUrl.includes('checkpoint') ||
-                              currentUrl.includes('challenge');
-                              
+          const isLoginPage = currentUrl.includes('login') ||
+            currentUrl.includes('signup') ||
+            currentUrl.includes('auth') ||
+            currentUrl.includes('checkpoint') ||
+            currentUrl.includes('challenge');
+
           // If we are navigating away from a login page to a non-login page, we probably succeeded!
           if (!isLoginPage && !loading) {
             // Check immediately, and check again in 2 seconds to ensure cookies are fully set
