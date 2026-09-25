@@ -12,6 +12,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
+import { Image } from 'react-native';
 
 export default function AccountsScreen() {
   const router = useRouter();
@@ -21,11 +22,22 @@ export default function AccountsScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      AsyncStorage.getItem('@connected_accounts').then((data) => {
+      AsyncStorage.getItem('universal_cookies').then((data) => {
         if (data) {
           try {
-            setConnected(JSON.parse(data));
+            const allCookies = JSON.parse(data);
+            const isLinkedin = !!allCookies['linkedin.com'] || !!allCookies['www.linkedin.com'];
+            const isIndeed = !!allCookies['indeed.com'] || !!allCookies['secure.indeed.com'];
+            const isGoogle = !!allCookies['google.com'] || !!allCookies['accounts.google.com'];
+            
+            setConnected({
+              linkedin: isLinkedin,
+              indeed: isIndeed,
+              google: isGoogle,
+            });
           } catch {}
+        } else {
+          setConnected({ linkedin: false, indeed: false, google: false });
         }
       });
     }, [])
@@ -53,7 +65,7 @@ export default function AccountsScreen() {
               onPress={() => router.push({ pathname: '/login', params: { url: 'https://www.linkedin.com/login' }})}
             >
               <View style={styles.providerIconContainer}>
-                <FontAwesome5 name="linkedin" size={24} color="#0A66C2" />
+                <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' }} style={{ width: 28, height: 28 }} resizeMode="contain" />
               </View>
               <View style={styles.providerTextContainer}>
                 <Text style={styles.providerTitle}>LinkedIn</Text>
@@ -76,7 +88,7 @@ export default function AccountsScreen() {
               onPress={() => router.push({ pathname: '/login', params: { url: 'https://secure.indeed.com/auth' }})}
             >
               <View style={styles.providerIconContainer}>
-                <Text style={[styles.providerTitle, { color: '#2164f3', fontSize: 18 }]}>Indeed</Text>
+                <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Indeed_logo.png/640px-Indeed_logo.png' }} style={{ width: 40, height: 20 }} resizeMode="contain" />
               </View>
               <View style={styles.providerTextContainer}>
                 <Text style={styles.providerTitle}>Indeed</Text>
@@ -99,7 +111,7 @@ export default function AccountsScreen() {
               onPress={() => router.push({ pathname: '/login', params: { url: 'https://accounts.google.com/signin' }})}
             >
               <View style={styles.providerIconContainer}>
-                <FontAwesome5 name="google" size={20} color="#EA4335" />
+                <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png' }} style={{ width: 24, height: 24 }} resizeMode="contain" />
               </View>
               <View style={styles.providerTextContainer}>
                 <Text style={styles.providerTitle}>Google</Text>
