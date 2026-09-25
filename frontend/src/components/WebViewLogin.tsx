@@ -14,10 +14,6 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
   const [loading, setLoading] = useState(true);
   const webviewRef = useRef<WebView>(null);
 
-  const userAgent = Platform.OS === 'android'
-    ? 'Mozilla/5.0 (Linux; Android 13; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36'
-    : 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1';
-
   // Fallback to hide loading spinner if site gets stuck
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 8000);
@@ -103,9 +99,14 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
             });
           }
         }}
-        incognito={false}
         sharedCookiesEnabled={true}
-        userAgent={userAgent}
+        thirdPartyCookiesEnabled={true}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        userAgent={Platform.OS === 'android' 
+          ? "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36"
+          : "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+        }
       />
     </SafeAreaView>
   );
