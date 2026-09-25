@@ -14,6 +14,29 @@ const api = axios.create({
   },
 });
 
+// Add global error interceptor for user-friendly messages
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let customMessage = 'An unknown error occurred.';
+    
+    if (error.response) {
+      if (error.response.status >= 500) {
+        customMessage = "The cloud server is currently experiencing an issue or restarting. Please try again in a minute.";
+      } else {
+        customMessage = error.response.data?.error || error.response.data?.message || `Server Error (${error.response.status})`;
+      }
+    } else if (error.request) {
+      customMessage = "Could not reach the server. Please check your internet connection.";
+    } else {
+      customMessage = error.message;
+    }
+    
+    error.friendlyMessage = customMessage;
+    return Promise.reject(error);
+  }
+);
+
 // ============================================================
 // Types
 // ============================================================

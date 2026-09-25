@@ -204,7 +204,7 @@ export default function HomeScreen() {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Connection Error',
-          body: error.message || 'Failed to connect to the auto-fill service.',
+          body: error.friendlyMessage || error.message || 'Failed to connect to the auto-fill service.',
         },
         trigger: null,
       });
