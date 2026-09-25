@@ -119,30 +119,4 @@ async def fill_form_endpoint(data: JobFillRequest):
             "success": False,
             "error": str(e),
             "message": "Failed to fill job form.",
-        }
-
-@router.post("/login")
-async def login_to_job_site(data: JobLoginRequest):
-    try:
-        result = await manual_login(str(data.url))
-        return result
-    except Exception as e:
-        traceback.print_exc()
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to open login page.",
-        }
-
-@router.post("/login/cancel")
-async def cancel_login_endpoint():
-    try:
-        result = await cancel_login()
-        return result
-    except Exception as e:
-        traceback.print_exc()
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to cancel login.",
         }

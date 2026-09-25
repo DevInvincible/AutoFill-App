@@ -19,7 +19,8 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
       const urlObj = new URL(url);
       const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
       
-      const cookies = await CookieManager.get(baseUrl);
+      // Pass true as second argument to use WKHTTPCookieStore on iOS for modern WebViews
+      const cookies = await CookieManager.get(baseUrl, true);
       
       if (Object.keys(cookies).length > 0) {
         // Find if we have any high-value auth cookies (common names)
