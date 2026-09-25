@@ -114,8 +114,9 @@ export default function HomeScreen() {
     return finalStatus === 'granted';
   };
 
-  const handleApply = async (overrideUrl?: string) => {
-    const jobUrl = overrideUrl || url;
+  const handleApply = async (overrideUrl?: string | any) => {
+    // If called from onPress, overrideUrl is a GestureResponderEvent object
+    const jobUrl = typeof overrideUrl === 'string' ? overrideUrl : url;
     
     if (!jobUrl.trim()) {
       Alert.alert('Missing URL', 'Please paste a valid job application URL.');
