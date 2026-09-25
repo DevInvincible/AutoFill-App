@@ -41,7 +41,6 @@ def get_browser_page(thread_id: str):
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            channel="chrome",  # Use real Chrome instead of Chromium
             args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
@@ -60,7 +59,6 @@ def get_browser_page(thread_id: str):
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            channel="chrome",
             args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
@@ -74,7 +72,6 @@ def inspect_page_sync(url: str):
         context = p.chromium.launch_persistent_context(
             user_data_dir="./browser_data",
             headless=False,
-            channel="chrome",
             args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
