@@ -156,6 +156,9 @@ export default function HomeScreen() {
       setUrl('');
       
       if (result.requires_login) {
+        Alert.alert('Login Required', 'Please log in to the job portal to continue the application process.', [
+          { text: 'Log In', onPress: () => router.push({ pathname: '/login', params: { url: result.login_url || jobUrl, resumeUrl: jobUrl } }) }
+        ]);
         await Notifications.scheduleNotificationAsync({
           content: {
             title: 'Authentication Required',
@@ -168,6 +171,7 @@ export default function HomeScreen() {
       }
       
       if (!result.success) {
+        Alert.alert('Application Failed', result.message || result.error || 'Unable to process the application.');
          await Notifications.scheduleNotificationAsync({
           content: {
             title: 'Application Failed',
@@ -214,10 +218,12 @@ export default function HomeScreen() {
       }
     }).catch(async (error: any) => {
       setLoading(false);
+      const msg = error.friendlyMessage || error.message || 'Failed to connect to the auto-fill service.';
+      Alert.alert('Connection Error', msg);
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Connection Error',
-          body: error.friendlyMessage || error.message || 'Failed to connect to the auto-fill service.',
+          body: msg,
         },
         trigger: null,
       });
