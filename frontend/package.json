@@ -4,8 +4,8 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
+    "@preeternal/react-native-cookie-manager": "^7.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-cookies/cookies": "^6.2.1",
     "axios": "^1.20.0",
     "expo": "~57.0.16",
     "expo-blur": "~57.0.3",
