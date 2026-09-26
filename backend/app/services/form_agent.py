@@ -454,20 +454,26 @@ def analyze_form_questions(
     thread_id: str = "test-thread",
 ):
 
-    result = form_agent.invoke(
-        {
-            "mapped_form": mapped_form,
-            "profile": profile.model_dump(),
-            "job_context": job_context or {},
-        },
-        config={
-            "configurable": {
-                "thread_id": thread_id
-            }
-        },
-    )
-
-    return result
+    try:
+        result = form_agent.invoke(
+            {
+                "mapped_form": mapped_form,
+                "profile": profile.model_dump(),
+                "job_context": job_context or {},
+            },
+            config={
+                "configurable": {
+                    "thread_id": thread_id
+                }
+            },
+        )
+        return result
+    except Exception as e:
+        print(f"[AI ERROR] form_agent.invoke failed: {e}")
+        return {
+            "mapped_form": mapped_form,  # Return untouched map
+            "ai_error": "The AI is currently experiencing high demand and returned a 503 error. Please wait a few seconds and tap Apply again."
+        }
 
 def resume_form_questions(
     thread_id: str,

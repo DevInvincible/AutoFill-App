@@ -356,6 +356,12 @@ def click_apply_sync(
         thread_id=thread_id
     )
 
+    if "ai_error" in agent_result:
+        return {
+            "success": False,
+            "message": agent_result["ai_error"],
+        }
+
     # Store session for /jobs/fill
     save_session(thread_id, {
         "fill_actions": fill_actions,
