@@ -317,7 +317,7 @@ def click_apply_sync(
         # Strategy 5: Smart LLM Fallback
         # If we couldn't find a standard button, ask the AI to pick the best one.
         try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
+            from app.services.form_agent import llm
             from langchain_core.messages import HumanMessage
             
             print("[ACTION] Standard heuristics failed. Asking AI to decide what to click...")
@@ -333,7 +333,6 @@ def click_apply_sync(
                     pass
             
             if visible_texts:
-                llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.0)
                 prompt = f"""
 The user is on a webpage and wants to start an application for a job, enroll in a course, or submit a form.
 Based on the visible buttons/links below, which one should they click to proceed?
