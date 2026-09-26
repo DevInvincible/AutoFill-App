@@ -228,32 +228,33 @@ def click_apply_sync(
     # Extract job information BEFORE opening the application form.
     job_context = extract_job_context(page)
     
-    apply_button = page.get_by_role(
-        "button",
-        name="Apply",
-        exact=False,
-    ).first
+    apply_button = page.get_by_role("button", name="Apply", exact=False).first
 
     if not apply_button.is_visible():
-        # Fallback: Check if they are on a public view and need to log in
-        sign_in_btn = page.get_by_role("button", name="Sign in", exact=False).first
-        sign_in_link = page.get_by_role("link", name="Sign in", exact=False).first
-        
-        if sign_in_btn.is_visible() or sign_in_link.is_visible():
-            # Fix #7: Capture URL before closing the page.
-            current_login_url = page.url
-            page.close()
+        print(f"[APPLY] Apply button not visible on: {page.url}")
+        # Try alternative selectors for different job portals
+        alt_selectors = [
+            "[data-testid='apply-button']",
+            "[aria-label*='apply' i]",
+            "a[href*='apply']",
+        ]
+        found_alt = False
+        for sel in alt_selectors:
+            try:
+                alt_btn = page.locator(sel).first
+                if alt_btn.is_visible():
+                    apply_button = alt_btn
+                    found_alt = True
+                    print(f"[APPLY] Found apply via alt selector: {sel}")
+                    break
+            except:
+                continue
+
+        if not found_alt:
             return {
                 "success": False,
-                "requires_login": True,
-                "message": "Please login to the job platform (LinkedIn/Indeed) first.",
-                "login_url": current_login_url
+                "message": "Apply button not found on this page. The job may have already been filled or the portal is not supported yet.",
             }
-
-        return {
-            "success": False,
-            "message": "Apply button not found",
-        }
 
     print("Apply button found!")
 
