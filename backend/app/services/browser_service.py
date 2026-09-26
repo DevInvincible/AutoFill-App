@@ -1606,6 +1606,10 @@ def fill_job_form_sync(thread_id: str):
         page.wait_for_timeout(3000)
         status = "submitted"
 
+    # Grab mapped form before potentially deleting session
+    current_session = get_session(thread_id)
+    mapped_form_out = current_session.get("mapped_form") if current_session else []
+
     # Cleanup browser memory if finished
     if status in ("completed", "submitted"):
         try:
@@ -1621,7 +1625,7 @@ def fill_job_form_sync(thread_id: str):
         "success": True,
         "status": status,
         "__interrupt__": interrupt,
-        "form": get_session(thread_id).get("mapped_form"),
+        "form": mapped_form_out,
         "filled": filled,
         "total_actions": len(all_actions),
         "profile_actions": len(profile_actions),
