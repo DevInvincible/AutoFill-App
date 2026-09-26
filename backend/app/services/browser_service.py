@@ -38,12 +38,13 @@ def get_browser_page(thread_id: str):
     # Force headless=False in cloud but use Xvfb (virtual display) in Docker
     # Cloudflare easily detects headless=True. Running a real headed browser
     # inside a virtual display defeats WebGL/Canvas headless checks.
-    is_headless = False
+    is_headless = True
 
     if thread_id not in _active_contexts:
-        _active_contexts[thread_id] = _active_playwrights[thread_id].firefox.launch_persistent_context(
+        _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
+            args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
 
@@ -58,9 +59,10 @@ def get_browser_page(thread_id: str):
         except:
             pass
 
-        _active_contexts[thread_id] = _active_playwrights[thread_id].firefox.launch_persistent_context(
+        _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
+            args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
         _active_pages[thread_id] = _active_contexts[thread_id].new_page()
@@ -69,12 +71,13 @@ def get_browser_page(thread_id: str):
 
 def inspect_page_sync(url: str, cookies: list[dict] = None):
     # Force headless mode in cloud to prevent XServer crashes
-    is_headless = False
+    is_headless = True
     with sync_playwright() as p:
 
-        context = p.firefox.launch_persistent_context(
+        context = p.chromium.launch_persistent_context(
             user_data_dir="./browser_data",
             headless=is_headless,
+            args=["--disable-blink-features=AutomationControlled"],
             ignore_default_args=["--enable-automation"],
         )
         
