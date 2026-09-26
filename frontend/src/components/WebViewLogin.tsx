@@ -34,11 +34,13 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
         const hasAuthCookie = Object.keys(cookies).some(name => {
           const lowerName = name.toLowerCase();
           return lowerName.includes('session') || 
-                 lowerName === 'li_at' || 
+                 lowerName === 'li_at' || // LinkedIn
+                 lowerName.includes('ind_logged_in') || // Indeed
+                 lowerName === 'ppid' || // Indeed
                  lowerName.includes('auth') || 
                  lowerName.includes('token') ||
-                 lowerName.includes('sid') ||
-                 lowerName.includes('ssid');
+                 lowerName.includes('sid') || // Google
+                 lowerName.includes('ssid'); // Google
         });
 
         // If we have an auth cookie OR more than 5 cookies (which usually means a full session), we succeed
