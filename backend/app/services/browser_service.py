@@ -2,11 +2,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import os
 import uuid
-from playwright.sync_api import sync_playwright
-try:
-    from playwright_stealth import stealth_sync
-except ImportError:
-    stealth_sync = None  # Graceful fallback if not installed yet
+from patchright.sync_api import sync_playwright
 from app.services.form_mapper import map_form_fields
 from app.services.form_filler import (
     prepare_fill_actions,
@@ -54,8 +50,6 @@ def get_browser_page(thread_id: str):
         page = _active_pages.get(thread_id)
         if page is None or page.is_closed():
             _active_pages[thread_id] = _active_contexts[thread_id].new_page()
-            if stealth_sync:
-                stealth_sync(_active_pages[thread_id])
     except Exception as e:
         print(f"Browser context closed for {thread_id}, restarting... ({e})")
         try:
@@ -70,8 +64,6 @@ def get_browser_page(thread_id: str):
             ignore_default_args=["--enable-automation"],
         )
         _active_pages[thread_id] = _active_contexts[thread_id].new_page()
-        if stealth_sync:
-            stealth_sync(_active_pages[thread_id])
 
     return _active_pages[thread_id]
 

@@ -6,10 +6,9 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers and dependencies
-# We only install Chromium to save space and time
-RUN playwright install chromium
-RUN playwright install-deps
+# Install patchright's patched Chromium browser (has stealth built in)
+RUN patchright install chromium
+RUN patchright install-deps
 
 # Copy the rest of the backend code
 COPY backend/ .
