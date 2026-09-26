@@ -141,12 +141,19 @@ export default function HomeScreen() {
     const cookieData = await AsyncStorage.getItem('universal_cookies');
     const allCookies = cookieData ? JSON.parse(cookieData) : {};
     
-    // Find cookies for the target job's domain
-    let cookies;
+    // Find cookies for the target job's domain — try all subdomain permutations
+    let cookies: any[] | undefined;
     try {
       const urlObj = new URL(jobUrl.trim());
-      const domainKey = urlObj.hostname.replace('www.', '');
-      cookies = allCookies[domainKey] || allCookies['www.' + domainKey] || allCookies[urlObj.hostname];
+      const hostname = urlObj.hostname; // e.g. secure.indeed.com
+      const baseDomain = hostname.split('.').slice(-2).join('.'); // e.g. indeed.com
+      const wwwDomain = 'www.' + baseDomain; // e.g. www.indeed.com
+      
+      // Try hostname first, then base domain, then www
+      cookies = allCookies[hostname] 
+             || allCookies[baseDomain] 
+             || allCookies[wwwDomain]
+             || allCookies['www.' + hostname];
     } catch (e) {
       cookies = undefined;
     }
@@ -156,17 +163,15 @@ export default function HomeScreen() {
       setUrl('');
       
       if (result.requires_login) {
-        Alert.alert('Login Required', 'Please log in to the job portal to continue the application process.', [
-          { text: 'Log In', onPress: () => router.push({ pathname: '/login', params: { url: result.login_url || jobUrl, resumeUrl: jobUrl } }) }
-        ]);
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Authentication Required',
-            body: 'Please log in to the job portal to continue the application process.',
-            data: { route: '/login', params: { url: result.login_url || jobUrl, resumeUrl: jobUrl } },
+        Alert.alert(
+          'Login Required', 
+          'You need to be logged into this job portal. Please go to the Accounts tab, log in there, then come back and try again.',
+          [{ 
+            text: 'Go to Accounts', 
+            onPress: () => router.push('/(tabs)/accounts') 
           },
-          trigger: null,
-        });
+          { text: 'Cancel', style: 'cancel' }]
+        );
         return;
       }
       
