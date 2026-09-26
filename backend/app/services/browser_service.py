@@ -482,9 +482,11 @@ def extract_form(page):
     # ---------------------------------------------------------
 
     inputs = page.locator(
-        "input:not([type='checkbox']):not([type='radio'])"
+        "input:not([type='checkbox']):not([type='radio']):not([type='hidden'])"
     ).evaluate_all("""
         elements => elements.map(el => {
+            // Ignore visually hidden fields
+            if (el.offsetParent === null) return null;
 
             let labelText = '';
 
@@ -582,7 +584,7 @@ def extract_form(page):
 
                 readonly: el.readOnly
             };
-        })
+        }).filter(item => item !== null)
     """)
 
     # ---------------------------------------------------------
