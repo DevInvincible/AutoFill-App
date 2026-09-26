@@ -37,10 +37,12 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
 
         // If we have an auth cookie OR more than 5 cookies (which usually means a full session), we succeed
         if (hasAuthCookie || Object.keys(cookies).length > 5) {
+          const baseDomainForCookie = urlObj.hostname.split('.').slice(-2).join('.');
           const playwrightCookies = Object.keys(cookies).map(key => ({
-            name: cookies[key].name,
+            name: cookies[key].name || key,
             value: cookies[key].value,
-            url: baseUrl,
+            domain: '.' + baseDomainForCookie,  // dot prefix = include all subdomains
+            path: cookies[key].path || '/',
             secure: cookies[key].secure ?? true,
             httpOnly: cookies[key].httpOnly ?? false,
           }));

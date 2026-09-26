@@ -192,38 +192,30 @@ def click_apply_sync(
     
     if cookies:
         try:
+            # Log cookie details to help debug session transfer issues
+            print(f"[COOKIES] Received {len(cookies)} cookies from app.")
+            for c in cookies[:5]:  # Print first 5 only
+                print(f"  - {c.get('name')} | domain={c.get('domain')} | path={c.get('path')} | value_len={len(str(c.get('value','')))}")
             page.context.add_cookies(cookies)
-            print(f"Injected {len(cookies)} cookies into the browser context.")
+            print(f"[COOKIES] Injected successfully into browser context.")
         except Exception as e:
-            print(f"Failed to add cookies: {e}")
-
+            print(f"[COOKIES] Failed to inject cookies: {e}")
 
     try:
-        page.goto(
-            url,
-            wait_until="domcontentloaded",
-            timeout=30000,
-        )
-        # Give LinkedIn's React frontend a few seconds to hydrate and render the buttons
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
         page.wait_for_timeout(3000)
     except Exception as e:
         if "TargetClosedError" in str(e) or "closed" in str(e).lower():
-            return {
-                "success": False,
-                "message": "Browser was closed before the page could load."
-            }
-        # If it was an interrupted navigation, it might just be a redirect to a login wall.
-        # We will catch the exception and let the login detection logic handle the current URL.
-        print(f"Warning during page.goto: {e}")
+            return {"success": False, "message": "Browser was closed before the page could load."}
+        print(f"[GOTO] Warning during page.goto: {e}")
 
-    # -------------------------------------------------------------
-    # Detect if we hit a Login Wall
-    # -------------------------------------------------------------
-    current_url = page.url.lower()
+    current_url = page.url
+    print(f"[GOTO] Final URL after navigation: {current_url}")
+    current_url_lower = current_url.lower()
     login_keywords = ["/login", "/signup", "authwall", "signin"]
 
-    if any(keyword in current_url for keyword in login_keywords):
-        # Fix #7: Capture URL before closing the page.
+    if any(keyword in current_url_lower for keyword in login_keywords):
+        print(f"[AUTH] Login wall detected at: {current_url}")
         current_login_url = page.url
         page.close()
         return {
