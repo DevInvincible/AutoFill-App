@@ -35,14 +35,16 @@ def get_browser_page(thread_id: str):
     if thread_id not in _active_playwrights:
         _active_playwrights[thread_id] = sync_playwright().start()
 
-    # Force headless mode in cloud to prevent XServer crashes
-    is_headless = True
+    # Force headless=False in cloud but use Xvfb (virtual display) in Docker
+    # Cloudflare easily detects headless=True. Running a real headed browser
+    # inside a virtual display defeats WebGL/Canvas headless checks.
+    is_headless = False
 
     if thread_id not in _active_contexts:
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             ignore_default_args=["--enable-automation"],
         )
 
@@ -60,7 +62,7 @@ def get_browser_page(thread_id: str):
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             ignore_default_args=["--enable-automation"],
         )
         _active_pages[thread_id] = _active_contexts[thread_id].new_page()
@@ -69,13 +71,13 @@ def get_browser_page(thread_id: str):
 
 def inspect_page_sync(url: str, cookies: list[dict] = None):
     # Force headless mode in cloud to prevent XServer crashes
-    is_headless = True
+    is_headless = False
     with sync_playwright() as p:
 
         context = p.chromium.launch_persistent_context(
             user_data_dir="./browser_data",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             ignore_default_args=["--enable-automation"],
         )
         
