@@ -200,6 +200,12 @@ export default function HomeScreen() {
       Alert.alert('Missing URL', 'Please paste a valid job application URL.');
       return;
     }
+    
+    // Basic URL validation
+    if (!jobUrl.trim().toLowerCase().startsWith('http://') && !jobUrl.trim().toLowerCase().startsWith('https://')) {
+      Alert.alert('Invalid URL', 'Please ensure the URL starts with http:// or https://');
+      return;
+    }
     if (!profile) {
       Alert.alert(
         'Profile Incomplete',
