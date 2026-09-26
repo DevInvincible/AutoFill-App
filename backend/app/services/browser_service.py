@@ -246,22 +246,24 @@ def click_apply_sync(
     job_context = extract_job_context(page)
     
     # ------------------------------------------------------------------
-    # Find Apply button — multi-strategy for different portals
-    # Indeed uses "Apply now", LinkedIn uses "Easy Apply", others vary.
+    # Find Action button — multi-strategy for different portals
+    # Indeed uses "Apply now", others use "Enroll", "Register", etc.
     # ------------------------------------------------------------------
     def find_apply_button():
-        # Strategy 1: role=button with Apply variants
-        for label in ["Apply now", "Apply Now", "Apply", "Easy Apply", "Apply on company website"]:
+        action_labels = ["Apply now", "Apply Now", "Apply", "Easy Apply", "Apply on company website", "Enroll", "Enroll Now", "Register", "Start Application", "Sign up"]
+        
+        # Strategy 1: role=button with Action variants
+        for label in action_labels:
             try:
                 btn = page.get_by_role("button", name=label, exact=False).first
                 if btn.count() > 0 and btn.is_visible():
-                    print(f"[APPLY] Found via button role: '{label}'")
+                    print(f"[ACTION] Found via button role: '{label}'")
                     return btn
             except:
                 pass
 
-        # Strategy 2: role=link with Apply variants
-        for label in ["Apply now", "Apply Now", "Apply", "Apply on company website"]:
+        # Strategy 2: role=link with Action variants
+        for label in action_labels:
             try:
                 lnk = page.get_by_role("link", name=label, exact=False).first
                 if lnk.count() > 0 and lnk.is_visible():
@@ -289,17 +291,52 @@ def click_apply_sync(
 
         # Strategy 4: JS deep text search as last resort
         try:
-            el = page.evaluate_handle("""
-                () => {
-                    const tags = [...document.querySelectorAll('button, a')];
-                    return tags.find(el => /apply/i.test(el.innerText || el.textContent));
-                }
-            """)
-            if el:
-                loc = page.locator(":scope").filter(has=page.locator("button, a")).first
-                print("[APPLY] Found via JS text search")
+            for label in action_labels:
+                btns = page.locator(f"text='{label}'").all()
+                for btn in btns:
+                    if btn.is_visible():
+                        print(f"[ACTION] Found via JS text search: '{label}'")
+                        return btn
         except:
             pass
+
+        # Strategy 5: Smart LLM Fallback
+        # If we couldn't find a standard button, ask the AI to pick the best one.
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.messages import HumanMessage
+            
+            print("[ACTION] Standard heuristics failed. Asking AI to decide what to click...")
+            all_btns = page.locator("button, a").all()
+            visible_texts = []
+            for b in all_btns:
+                try:
+                    if b.is_visible():
+                        text = b.inner_text().strip()
+                        if text and len(text) < 40 and text not in visible_texts:
+                            visible_texts.append(text)
+                except:
+                    pass
+            
+            if visible_texts:
+                llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.0)
+                prompt = f"""
+The user is on a webpage and wants to start an application for a job, enroll in a course, or submit a form.
+Based on the visible buttons/links below, which one should they click to proceed?
+Return ONLY the exact text of the button to click. If none of these seem correct, return exactly 'NONE'.
+
+Buttons/Links:
+{visible_texts}
+"""
+                ai_decision = llm.invoke([HumanMessage(content=prompt)]).content.strip()
+                print(f"[ACTION] AI decided to click: '{ai_decision}'")
+                
+                if ai_decision != "NONE" and ai_decision in visible_texts:
+                    btn = page.locator(f"button:has-text('{ai_decision}'), a:has-text('{ai_decision}')").first
+                    if btn.count() > 0 and btn.is_visible():
+                        return btn
+        except Exception as e:
+            print(f"[ACTION] AI fallback failed: {e}")
 
         return None
 
