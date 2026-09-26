@@ -48,7 +48,8 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
           const existingData = await AsyncStorage.getItem('universal_cookies');
           const allCookies = existingData ? JSON.parse(existingData) : {};
 
-          const domainKey = urlObj.hostname.replace('www.', '');
+          // Save under the base domain (e.g. "indeed.com") so index.tsx lookup always matches
+          const domainKey = urlObj.hostname.split('.').slice(-2).join('.');
           allCookies[domainKey] = playwrightCookies;
 
           await AsyncStorage.setItem('universal_cookies', JSON.stringify(allCookies));
@@ -91,12 +92,13 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
             currentUrl.includes('checkpoint') ||
             currentUrl.includes('challenge');
 
-          // If we are navigating away from a login page to a non-login page, we probably succeeded!
-          if (!isLoginPage && !loading) {
-            // Check immediately, and check again in 2 seconds to ensure cookies are fully set
-            checkLoginSuccess(currentUrl).then(success => {
-              if (!success) setTimeout(() => checkLoginSuccess(currentUrl), 2000);
-            });
+          // Navigating away from login page — give cookies 1.5s to settle then check
+          if (!isLoginPage) {
+            setTimeout(() => {
+              checkLoginSuccess(currentUrl).then(success => {
+                if (!success) setTimeout(() => checkLoginSuccess(currentUrl), 2500);
+              });
+            }, 1500);
           }
         }}
         sharedCookiesEnabled={true}

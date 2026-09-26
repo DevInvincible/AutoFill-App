@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import Animated, { FadeIn, FadeInDown, SlideInRight, Layout } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import QuestionCard from '../src/components/QuestionCard';
 import StatusBadge from '../src/components/StatusBadge';
 import { ApplyResponse, AgentAnswer, submitAnswers, fillForm } from '../src/services/api';
+
+const ACTIVE_JOBS_KEY = '@active_jobs';
 
 export default function ReviewScreen() {
   const router = useRouter();
@@ -58,29 +60,28 @@ export default function ReviewScreen() {
         }
         const result = await fillForm(threadId);
         setLoading(false);
-        
+
         if (!result.success) {
+          const errMsg = result.error || result.message || 'An error occurred during submission.';
+          Alert.alert('Submission Failed', errMsg);
           await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Submission Failed',
-              body: result.error || result.message || 'An error occurred during submission.',
-            },
+            content: { title: '❌ Submission Failed', body: errMsg },
             trigger: null,
           });
           return;
         }
+
         if (result.status === 'next_page') {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: 'More Info Needed',
+              title: '📄 Next Page',
               body: 'The application has another page that requires review.',
               data: { route: '/review', params: { data: JSON.stringify(result) } },
             },
             trigger: null,
           });
-          // Also update active jobs
           try {
-            const stored = await AsyncStorage.getItem('@active_jobs');
+            const stored = await AsyncStorage.getItem(ACTIVE_JOBS_KEY);
             if (stored) {
               let jobs = JSON.parse(stored);
               jobs = jobs.filter((j: any) => j.thread_id !== threadId);
@@ -91,39 +92,42 @@ export default function ReviewScreen() {
                   title: applyResult.title || 'Job Application',
                   status: 'Needs Review',
                   timestamp: Date.now(),
-                  data: JSON.stringify(result)
+                  data: JSON.stringify(result),
                 });
               }
-              await AsyncStorage.setItem('@active_jobs', JSON.stringify(jobs));
+              await AsyncStorage.setItem(ACTIVE_JOBS_KEY, JSON.stringify(jobs));
             }
           } catch {}
+          router.replace({ pathname: '/review', params: { data: JSON.stringify(result) } });
           return;
         }
 
-        // Cleanup active jobs on complete
+        // Cleanup active jobs on completion
         try {
-          const stored = await AsyncStorage.getItem('@active_jobs');
+          const stored = await AsyncStorage.getItem(ACTIVE_JOBS_KEY);
           if (stored) {
             const jobs = JSON.parse(stored).filter((j: any) => j.thread_id !== threadId);
-            await AsyncStorage.setItem('@active_jobs', JSON.stringify(jobs));
+            await AsyncStorage.setItem(ACTIVE_JOBS_KEY, JSON.stringify(jobs));
           }
         } catch {}
 
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Application Completed',
+            title: '🎉 Application Submitted!',
             body: 'Your job application has been successfully submitted.',
             data: { route: '/result', params: { data: JSON.stringify(result) } },
           },
           trigger: null,
         });
+
+        // Navigate directly to the result screen
+        router.replace({ pathname: '/result', params: { data: JSON.stringify(result) } });
       } catch (error: any) {
         setLoading(false);
+        const msg = error.friendlyMessage || error.message || 'An error occurred while connecting to the service.';
+        Alert.alert('Network Error', msg);
         await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Network Error',
-            body: error.message || 'An error occurred while connecting to the service.',
-          },
+          content: { title: '❌ Network Error', body: msg },
           trigger: null,
         });
       }

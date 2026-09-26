@@ -1,23 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 import os
-from app.schemas.job import JobAnalyzeRequest, JobLoginRequest
-from app.services.browser_service import (
-    inspect_page,
-    click_apply,
-    fill_job_form,
-    manual_login,
-    cancel_login,
-)
-from app.services.job_parser import find_apply_elements
-from app.services.form_mapper import map_form_fields
-from app.services.form_filler import (
-    prepare_fill_actions,
-    fill_form,
-)
-from app.services.profile_service import get_test_profile
-from pydantic import BaseModel
+from app.schemas.job import JobAnalyzeRequest
+from app.services.browser_service import click_apply, fill_job_form
 from app.services.form_agent import resume_form_questions
+from pydantic import BaseModel
 import traceback
 
 class JobAnswersRequest(BaseModel):
@@ -44,27 +31,9 @@ router = APIRouter(
 )
 
 
-@router.post("/analyze")
-async def analyze_job(data: JobAnalyzeRequest):
-    if not str(data.url).startswith(("http://", "https://")):
-        return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
-    
-    try:
-        page_data = await inspect_page(str(data.url), data.cookies)
-
-        apply_elements = find_apply_elements(page_data)
-
-        return {
-            "page": page_data,
-            "apply_elements": apply_elements,
-        }
-    except Exception as e:
-        traceback.print_exc()
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to analyze job page.",
-        }
+@router.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 @router.post("/apply")
 async def apply_to_job(data: JobAnalyzeRequest):
