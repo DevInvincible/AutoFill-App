@@ -144,7 +144,11 @@ def extract_job_context(page):
     title = page.title()
 
     # Get visible page text.
-    body_text = page.locator("body").inner_text()
+    try:
+        body_text = page.locator("body").inner_text(timeout=5000)
+    except Exception as e:
+        print(f"[EXTRACT] Failed to get body text: {e}")
+        body_text = ""
 
     # Try common job-page selectors.
     job_title = ""
