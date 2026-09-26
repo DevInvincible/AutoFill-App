@@ -31,9 +31,15 @@ export default function WebViewLogin({ url, onSuccess, onCancel }: WebViewLoginP
       if (Object.keys(cookies).length > 0) {
         // Find if we have any high-value auth cookies (common names)
         // or if we just have a lot of cookies (usually means logged in)
-        const hasAuthCookie = Object.keys(cookies).some(name =>
-          name.includes('session') || name === 'li_at' || name.includes('auth') || name.includes('token')
-        );
+        const hasAuthCookie = Object.keys(cookies).some(name => {
+          const lowerName = name.toLowerCase();
+          return lowerName.includes('session') || 
+                 lowerName === 'li_at' || 
+                 lowerName.includes('auth') || 
+                 lowerName.includes('token') ||
+                 lowerName.includes('sid') ||
+                 lowerName.includes('ssid');
+        });
 
         // If we have an auth cookie OR more than 5 cookies (which usually means a full session), we succeed
         if (hasAuthCookie || Object.keys(cookies).length > 5) {

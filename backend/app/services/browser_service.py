@@ -236,7 +236,7 @@ def click_apply_sync(
     current_url = page.url
     print(f"[GOTO] Final URL after navigation: {current_url}")
     current_url_lower = current_url.lower()
-    login_keywords = ["/login", "/signup", "authwall", "signin"]
+    login_keywords = ["/login", "/signup", "authwall", "signin", "servicelogin", "identifier"]
 
     if any(keyword in current_url_lower for keyword in login_keywords):
         print(f"[AUTH] Login wall detected at: {current_url}")
@@ -378,7 +378,7 @@ Buttons/Links:
 
         # Check if clicking Apply brought up a login wall or modal
         current_url_after = page.url.lower()
-        login_keywords = ["/login", "/signup", "authwall", "signin"]
+        login_keywords = ["/login", "/signup", "authwall", "signin", "servicelogin", "identifier"]
         password_field = page.locator('input[type="password"]').first
         
         if any(keyword in current_url_after for keyword in login_keywords) or (password_field.count() > 0 and password_field.is_visible()):
