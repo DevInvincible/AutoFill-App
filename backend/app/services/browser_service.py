@@ -228,33 +228,82 @@ def click_apply_sync(
     # Extract job information BEFORE opening the application form.
     job_context = extract_job_context(page)
     
-    apply_button = page.get_by_role("button", name="Apply", exact=False).first
-
-    if not apply_button.is_visible():
-        print(f"[APPLY] Apply button not visible on: {page.url}")
-        # Try alternative selectors for different job portals
-        alt_selectors = [
-            "[data-testid='apply-button']",
-            "[aria-label*='apply' i]",
-            "a[href*='apply']",
-        ]
-        found_alt = False
-        for sel in alt_selectors:
+    # ------------------------------------------------------------------
+    # Find Apply button — multi-strategy for different portals
+    # Indeed uses "Apply now", LinkedIn uses "Easy Apply", others vary.
+    # ------------------------------------------------------------------
+    def find_apply_button():
+        # Strategy 1: role=button with Apply variants
+        for label in ["Apply now", "Apply Now", "Apply", "Easy Apply", "Apply on company website"]:
             try:
-                alt_btn = page.locator(sel).first
-                if alt_btn.is_visible():
-                    apply_button = alt_btn
-                    found_alt = True
-                    print(f"[APPLY] Found apply via alt selector: {sel}")
-                    break
+                btn = page.get_by_role("button", name=label, exact=False).first
+                if btn.count() > 0 and btn.is_visible():
+                    print(f"[APPLY] Found via button role: '{label}'")
+                    return btn
             except:
-                continue
+                pass
 
-        if not found_alt:
-            return {
-                "success": False,
-                "message": "Apply button not found on this page. The job may have already been filled or the portal is not supported yet.",
-            }
+        # Strategy 2: role=link with Apply variants
+        for label in ["Apply now", "Apply Now", "Apply", "Apply on company website"]:
+            try:
+                lnk = page.get_by_role("link", name=label, exact=False).first
+                if lnk.count() > 0 and lnk.is_visible():
+                    print(f"[APPLY] Found via link role: '{label}'")
+                    return lnk
+            except:
+                pass
+
+        # Strategy 3: Indeed/LinkedIn-specific data attributes
+        for sel in [
+            "[data-testid='indeedApply']",
+            "[data-testid='apply-button']",
+            "[class*='indeed-apply' i]",
+            "[class*='apply-button' i]",
+            "[id*='apply' i]",
+            "[aria-label*='apply' i]",
+        ]:
+            try:
+                el = page.locator(sel).first
+                if el.count() > 0 and el.is_visible():
+                    print(f"[APPLY] Found via selector: {sel}")
+                    return el
+            except:
+                pass
+
+        # Strategy 4: JS deep text search as last resort
+        try:
+            el = page.evaluate_handle("""
+                () => {
+                    const tags = [...document.querySelectorAll('button, a')];
+                    return tags.find(el => /apply/i.test(el.innerText || el.textContent));
+                }
+            """)
+            if el:
+                loc = page.locator(":scope").filter(has=page.locator("button, a")).first
+                print("[APPLY] Found via JS text search")
+        except:
+            pass
+
+        return None
+
+    # Scroll to trigger lazy-loaded content, then search
+    page.evaluate("window.scrollTo(0, 400)")
+    page.wait_for_timeout(1500)
+
+    apply_button = find_apply_button()
+
+    if not apply_button:
+        # Log all visible buttons to help future debugging
+        try:
+            all_btns = page.locator("button, a").all()
+            visible_texts = [b.inner_text() for b in all_btns if b.is_visible()][:10]
+            print(f"[APPLY] No apply button found. Visible buttons/links: {visible_texts}")
+        except:
+            pass
+        return {
+            "success": False,
+            "message": "Apply button not found. The job may have expired, already been filled, or uses an unsupported portal layout.",
+        }
 
     print("Apply button found!")
 
