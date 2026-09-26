@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y xvfb && rm -rf /var/lib/apt/lists/*
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install patchright's patched Chromium browser (has stealth built in)
-RUN patchright install chromium
-RUN patchright install-deps
+# Install patchright's patched Firefox browser
+RUN patchright install firefox
+RUN patchright install-deps firefox
 
 # Copy the rest of the backend code
 COPY backend/ .

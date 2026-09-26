@@ -41,10 +41,9 @@ def get_browser_page(thread_id: str):
     is_headless = False
 
     if thread_id not in _active_contexts:
-        _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
+        _active_contexts[thread_id] = _active_playwrights[thread_id].firefox.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             ignore_default_args=["--enable-automation"],
         )
 
@@ -59,10 +58,9 @@ def get_browser_page(thread_id: str):
         except:
             pass
 
-        _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
+        _active_contexts[thread_id] = _active_playwrights[thread_id].firefox.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             ignore_default_args=["--enable-automation"],
         )
         _active_pages[thread_id] = _active_contexts[thread_id].new_page()
@@ -74,10 +72,9 @@ def inspect_page_sync(url: str, cookies: list[dict] = None):
     is_headless = False
     with sync_playwright() as p:
 
-        context = p.chromium.launch_persistent_context(
+        context = p.firefox.launch_persistent_context(
             user_data_dir="./browser_data",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             ignore_default_args=["--enable-automation"],
         )
         
