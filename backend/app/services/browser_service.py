@@ -375,6 +375,23 @@ Buttons/Links:
             apply_button.evaluate("node => node.click()")
 
         page.wait_for_timeout(2000)
+
+        # Check if clicking Apply brought up a login wall or modal
+        current_url_after = page.url.lower()
+        login_keywords = ["/login", "/signup", "authwall", "signin"]
+        password_field = page.locator('input[type="password"]').first
+        
+        if any(keyword in current_url_after for keyword in login_keywords) or (password_field.count() > 0 and password_field.is_visible()):
+            print(f"[AUTH] Login wall detected after clicking Apply at: {page.url}")
+            current_login_url = page.url
+            page.close()
+            return {
+                "success": False,
+                "requires_login": True,
+                "message": "Please login to the job platform first. The platform requires an account to apply.",
+                "login_url": current_login_url
+            }
+
         print("Application form opened via button click!")
 
     # 1. Extract complete form (whether we clicked a button or it was a direct link)
