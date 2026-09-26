@@ -345,8 +345,11 @@ Buttons/Links:
         return None
 
     # Scroll to trigger lazy-loaded content, then search
-    page.evaluate("window.scrollTo(0, 400)")
-    page.wait_for_timeout(1500)
+    try:
+        page.evaluate("window.scrollTo(0, 400)")
+        page.wait_for_timeout(1500)
+    except Exception as e:
+        print(f"[SCROLL] Failed to scroll page: {e}")
 
     apply_button = find_apply_button()
 
