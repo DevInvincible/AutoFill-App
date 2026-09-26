@@ -313,35 +313,38 @@ def click_apply_sync(
     apply_button = find_apply_button()
 
     if not apply_button:
-        # Log all visible buttons to help future debugging
+        # Log visible buttons for debugging
         try:
             all_btns = page.locator("button, a").all()
             visible_texts = [b.inner_text() for b in all_btns if b.is_visible()][:10]
-            print(f"[APPLY] No apply button found. Visible buttons/links: {visible_texts}")
+            print(f"[APPLY] No apply button found. Visible: {visible_texts}")
         except:
             pass
-        return {
-            "success": False,
-            "message": "Apply button not found. The job may have expired, already been filled, or uses an unsupported portal layout.",
-        }
+            
+        print("[APPLY] Assuming user pasted a direct form link. Proceeding to extract form...")
+    else:
+        print("Apply button found!")
+        try:
+            apply_button.click(force=True, timeout=5000)
+        except Exception as e:
+            print(f"Failed to click apply button normally, trying JS click... {e}")
+            apply_button.evaluate("node => node.click()")
 
-    print("Apply button found!")
+        page.wait_for_timeout(2000)
+        print("Application form opened via button click!")
 
-    try:
-        apply_button.click(force=True, timeout=5000)
-    except Exception as e:
-        print(f"Failed to click apply button normally, trying JS click... {e}")
-        apply_button.evaluate("node => node.click()")
-
-    page.wait_for_timeout(2000)
-
-    print("Application form opened!")
-
-    # 1. Extract complete form
+    # 1. Extract complete form (whether we clicked a button or it was a direct link)
     form_data = extract_form(page)
 
     # 2. Map complete form
     mapped_form = map_form_fields(form_data)
+    
+    # If we didn't click an apply button AND we found no form fields, it's a dead end.
+    if not apply_button and not mapped_form:
+        return {
+            "success": False,
+            "message": "No Apply button found, and this page does not appear to be an application form (no inputs detected).",
+        }
 
     # 3. Prepare known profile fields
     fill_actions = prepare_fill_actions(
