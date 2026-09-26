@@ -44,7 +44,14 @@ def get_browser_page(thread_id: str):
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox"
+            ],
             ignore_default_args=["--enable-automation"],
         )
 
