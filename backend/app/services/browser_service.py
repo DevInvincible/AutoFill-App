@@ -202,13 +202,22 @@ def click_apply_sync(
             ]
             
             print(f"[COOKIES] Received {len(cookies)} cookies from app. Filtered to {len(safe_cookies)} safe cookies.")
-            for c in safe_cookies[:5]:  # Print first 5 only
-                print(f"  - {c.get('name')} | domain={c.get('domain')} | url={c.get('url')} | value_len={len(str(c.get('value','')))}")
-            
             page.context.add_cookies(safe_cookies)
             print(f"[COOKIES] Injected successfully into browser context.")
         except Exception as e:
             print(f"[COOKIES] Failed to inject cookies: {e}")
+
+    # Normalize URL: Cloudflare blocks US datacenter IPs trying to access foreign subdomains (like pk.indeed.com)
+    # due to geo-anomaly rules. We force www.indeed.com to avoid this trigger.
+    if "indeed.com" in url.lower():
+        import urllib.parse
+        parsed = urllib.parse.urlparse(url)
+        # Replace subdomain with www
+        domain_parts = parsed.netloc.split('.')
+        if len(domain_parts) >= 3 and domain_parts[-2] == "indeed":
+            new_netloc = "www.indeed.com"
+            url = parsed._replace(netloc=new_netloc).geturl()
+            print(f"[GOTO] Normalized Indeed URL to prevent geo-block: {url}")
 
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=30000)
