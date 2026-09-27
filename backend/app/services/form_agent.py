@@ -472,9 +472,32 @@ def analyze_form_questions(
         return result
     except Exception as e:
         print(f"[AI ERROR] form_agent.invoke failed: {e}")
+        
+        # Fallback: if AI is down, we pass all unanswered fields to the user to fill manually!
+        fallback_answers = []
+        for q in mapped_form.get("agent_unanswered", []):
+            fallback_answers.append({
+                "id": q.get("id"),
+                "name": q.get("name"),
+                "question": q.get("label", "Unknown Field"),
+                "field_type": q.get("type", "text"),
+                "options": q.get("options", []),
+                "answer": None,
+                "confidence": 0.0,
+                "needs_user_input": True,
+                "answer_source": "AI Unavailable - Manual Input Required"
+            })
+            
         return {
-            "mapped_form": mapped_form,  # Return untouched map
-            "ai_error": "The AI is currently experiencing high demand and returned a 503 error. Please wait a few seconds and tap Apply again."
+            "mapped_form": mapped_form,
+            "agent_response": {
+                "answers": fallback_answers,
+                "total_questions": len(fallback_answers)
+            },
+            "__interrupt__": (
+                ("interrupt", "needs_input") 
+                if fallback_answers else None
+            )
         }
 
 def resume_form_questions(
