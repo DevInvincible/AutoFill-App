@@ -18,7 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# gemini-1.5-flash-8b is less prone to 503s because it's lighter and faster
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-8b")
 
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not configured")
@@ -31,6 +32,7 @@ if not GEMINI_API_KEY:
 llm = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
+    max_retries=5, # Automatically retry on 503 / 429
 )
 
 
