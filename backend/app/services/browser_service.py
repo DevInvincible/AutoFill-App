@@ -58,7 +58,10 @@ def get_browser_page(thread_id: str):
     try:
         page = _active_pages.get(thread_id)
         if page is None or page.is_closed():
-            _active_pages[thread_id] = _active_contexts[thread_id].new_page()
+            page = _active_contexts[thread_id].new_page()
+            # Block images/media to save RAM
+            page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font"] else route.continue_())
+            _active_pages[thread_id] = page
     except Exception as e:
         print(f"Browser context closed for {thread_id}, restarting... ({e})")
         try:
@@ -69,12 +72,30 @@ def get_browser_page(thread_id: str):
         _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
             user_data_dir=f"./browser_data_{thread_id}",
             headless=is_headless,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--js-flags='--max-old-space-size=256'"
+            ],
             ignore_default_args=["--enable-automation"],
         )
-        _active_pages[thread_id] = _active_contexts[thread_id].new_page()
+        page = _active_contexts[thread_id].new_page()
+        # Block images/media to save RAM
+        page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font"] else route.continue_())
+        _active_pages[thread_id] = page
 
-    return _active_pages[thread_id]
+    # Ensure the first page also gets the block if it didn't crash
+    page = _active_pages[thread_id]
+    try:
+        page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font"] else route.continue_())
+    except:
+        pass # Route might already be set
+
+    return page
 
 def inspect_page_sync(url: str, cookies: list[dict] = None):
     # Force headless mode in cloud to prevent XServer crashes
