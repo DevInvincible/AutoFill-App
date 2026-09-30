@@ -3,6 +3,7 @@ uvicorn[standard]
 pydantic
 patchright
 langchain-google-genai
+langchain-groq
 langgraph
 python-dotenv
 redis

@@ -6,6 +6,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 import os
 from dotenv import load_dotenv
 
@@ -17,23 +18,33 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Using the exact '-latest' alias which is officially supported in v1beta to prevent 404s
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
-
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not configured")
-
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama3-70b-8192")
 
 # ============================================================
 # LLM
 # ============================================================
 
-llm = ChatGoogleGenerativeAI(
-    model=GEMINI_MODEL,
-    google_api_key=GEMINI_API_KEY,
-    max_retries=5, # Automatically retry on 503 / 429
-)
+if LLM_PROVIDER == "groq":
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY is not configured for Groq provider")
+    llm = ChatGroq(
+        model=GROQ_MODEL,
+        groq_api_key=GROQ_API_KEY,
+        max_retries=5,
+    )
+else:
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured for Gemini provider")
+    llm = ChatGoogleGenerativeAI(
+        model=GEMINI_MODEL,
+        google_api_key=GEMINI_API_KEY,
+        max_retries=5, # Automatically retry on 503 / 429
+    )
 
 
 # ============================================================
