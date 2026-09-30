@@ -521,6 +521,28 @@ Buttons/Links:
         profile,
     )
 
+    # Re-calculate unanswered questions to include any profile fields that the user was missing data for
+    # and aggressively filter out background page elements (like nav search bars) if a modal is open.
+    handled_ids = {a.get("id") for a in fill_actions if a.get("id")}
+    ignored_labels = {"search", "attach", "upload", "select language", "language"}
+    
+    actual_unanswered = []
+    for f in fields:
+        f_id = f.get("id")
+        f_label = str(f.get("label", "")).lower().strip()
+        f_type = f.get("type", "")
+        
+        if f_id and f_id in handled_ids:
+            continue
+        if f_type == "search" or f_type == "file":
+            continue
+        if any(ignored in f_label for ignored in ignored_labels):
+            continue
+            
+        actual_unanswered.append(f)
+        
+    mapped_form["unanswered_questions"] = actual_unanswered
+
     set_progress(thread_id, 85, "AI Agent answering questions...")
     agent_result = analyze_form_questions(
         mapped_form=mapped_form,
