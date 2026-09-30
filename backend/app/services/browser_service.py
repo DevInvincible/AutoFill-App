@@ -528,15 +528,27 @@ Buttons/Links:
     
     actual_unanswered = []
     for f in fields:
-        f_id = f.get("id")
+        f_id = str(f.get("id", "")).lower()
+        f_name = str(f.get("name", "")).lower()
+        f_placeholder = str(f.get("placeholder", "")).lower()
         f_label = str(f.get("label", "")).lower().strip()
         f_type = f.get("type", "")
         
         if f_id and f_id in handled_ids:
             continue
-        if f_type == "search" or f_type == "file":
+            
+        if f_type == "search" or f_type == "file" or f_type == "hidden":
             continue
+            
         if any(ignored in f_label for ignored in ignored_labels):
+            continue
+            
+        # The user's suggestion: filter by id, name, or placeholder for common background elements!
+        is_background_garbage = any(
+            bad in f_id or bad in f_name or bad in f_placeholder 
+            for bad in ["search", "login", "nav", "footer", "language", "password"]
+        )
+        if is_background_garbage:
             continue
             
         actual_unanswered.append(f)
