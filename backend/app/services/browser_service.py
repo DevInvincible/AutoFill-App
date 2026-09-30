@@ -421,6 +421,11 @@ Buttons/Links:
         print("[APPLY] Assuming user pasted a direct form link. Proceeding to extract form...")
     else:
         print("Apply button found!")
+        
+        # Track pages before click to detect new tabs
+        context = page.context
+        pages_before = len(context.pages)
+        
         try:
             apply_button.click(force=True, timeout=5000)
         except Exception as e:
@@ -436,6 +441,14 @@ Buttons/Links:
                 "message": "The web page crashed or ran out of memory. Please try again or try a different job posting."
             }
 
+        # If clicking opened a new tab (e.g. redirect to Workday/Greenhouse), switch to it!
+        if len(context.pages) > pages_before:
+            print("[APPLY] Apply button opened a new tab. Switching to new tab...")
+            page = context.pages[-1]
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=15000)
+            except:
+                pass
 
         # Check if clicking Apply brought up a login wall or modal
         current_url_after = page.url.lower()
@@ -473,7 +486,10 @@ Buttons/Links:
                 "message": "No Apply button found, and this page does not appear to be an application form (no inputs detected).",
             }
             
-        # Heuristic check: Does this form ask for job-related things?
+    # Heuristic check: Does this form ask for job-related things?
+    # This must run even if an apply_button WAS found, to prevent scraping raw site footers
+    # if the apply button just anchored down the page without loading a real form.
+    if len(fields) > 0:
         has_job_fields = False
         for f in fields:
             st = str(f.get("semantic_type", ""))
@@ -488,10 +504,16 @@ Buttons/Links:
                 break
                 
         if not has_job_fields:
-            return {
-                "success": False,
-                "message": "No Apply button found, and the form fields on this page do not appear to be for a job application.",
-            }
+            if apply_button:
+                return {
+                    "success": False,
+                    "message": "Apply button was clicked, but no actual job application fields were found. The site may require you to log in first, or it redirected to an unsupported portal.",
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "No Apply button found, and the form fields on this page do not appear to be for a job application.",
+                }
 
     # 3. Prepare known profile fields
     fill_actions = prepare_fill_actions(
