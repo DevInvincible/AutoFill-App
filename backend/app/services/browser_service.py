@@ -532,6 +532,13 @@ Buttons/Links:
                 label = str(f.get("label", "")).lower()
                 name = str(f.get("name", "")).lower()
                 
+                # To prove the modal is actually open, the field MUST have a real label or name. 
+                # We cannot trust ghost fields (which only have an ID) because they exist in the background DOM
+                # and will trick the crawler into breaking the retry loop too early.
+                has_real_label = len(label) > 0 or len(name) > 0
+                if not has_real_label:
+                    continue
+                
                 if st in ["first_name", "last_name", "name", "email", "tel", "resume", "linkedin", "portfolio", "cover_letter"]:
                     has_job_fields = True
                     break
