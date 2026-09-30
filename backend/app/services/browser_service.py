@@ -451,20 +451,32 @@ Buttons/Links:
                 pass
 
         # Check if clicking Apply brought up a login wall or modal
-        current_url_after = page.url.lower()
-        login_keywords = ["/login", "/signup", "authwall", "signin", "servicelogin", "identifier", "checkpoint", "challenge"]
-        password_field = page.locator('input[type="password"]').first
-        
-        if any(keyword in current_url_after for keyword in login_keywords) or (password_field.count() > 0 and password_field.is_visible()):
-            print(f"[AUTH] Login wall detected after clicking Apply at: {page.url}")
-            current_login_url = page.url
-            page.close()
-            return {
-                "success": False,
-                "requires_login": True,
-                "message": "Please login to the job platform first. The platform requires an account to apply.",
-                "login_url": current_login_url
-            }
+        try:
+            current_url_after = page.url.lower()
+            login_keywords = ["/login", "/signup", "authwall", "signin", "servicelogin", "identifier", "checkpoint", "challenge"]
+            
+            has_login_url = any(keyword in current_url_after for keyword in login_keywords)
+            has_password = False
+            try:
+                password_field = page.locator('input[type="password"]').first
+                has_password = password_field.count() > 0 and password_field.is_visible()
+            except Exception:
+                pass  # Page may have navigated; ignore password check
+            
+            if has_login_url or has_password:
+                print(f"[AUTH] Login wall detected after clicking Apply at: {page.url}")
+                current_login_url = page.url
+                page.close()
+                return {
+                    "success": False,
+                    "requires_login": True,
+                    "message": "Please login to the job platform first. The platform requires an account to apply.",
+                    "login_url": current_login_url
+                }
+        except Exception as e:
+            if "TargetClosedError" in str(e) or "closed" in str(e).lower():
+                return {"success": False, "message": "The browser page was closed unexpectedly. Please try again."}
+            print(f"[AUTH] Warning during login check: {e}")
 
         print("Application form opened via button click!")
 
