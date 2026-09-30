@@ -207,19 +207,7 @@ export default function HomeScreen() {
       Alert.alert('Invalid URL', 'Please ensure the URL starts with http:// or https://');
       return;
     }
-
-    // Blacklist non-job domains
-    const blockedDomains = [
-      "drive.google.com", "docs.google.com", "youtube.com", "youtu.be",
-      "facebook.com", "instagram.com", "twitter.com", "x.com",
-      "tiktok.com", "reddit.com", "netflix.com", "amazon.com", "mail.google.com"
-    ];
-    for (const domain of blockedDomains) {
-      if (lowerUrl.includes(domain)) {
-        Alert.alert('Invalid URL', `The link appears to be for ${domain}, which is not a job board.`);
-        return;
-      }
-    }
+    
     if (!profile) {
       Alert.alert(
         'Profile Incomplete',
