@@ -45,21 +45,30 @@ def get_browser_page(thread_id: str):
     is_headless = True
 
     if thread_id not in _active_contexts:
-        _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
-            user_data_dir=f"./browser_data_{thread_id}",
-            headless=is_headless,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--disable-gpu",
-                "--disable-software-rasterizer",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--js-flags='--max-old-space-size=256'",
-                "--disable-features=site-per-process"
-            ],
-            ignore_default_args=["--enable-automation"],
-        )
+        browserless_key = os.environ.get("BROWSERLESS_API_KEY")
+        if browserless_key:
+            print("[BROWSER] Connecting to Browserless.io...")
+            browser = _active_playwrights[thread_id].chromium.connect_over_cdp(
+                f"wss://chrome.browserless.io?token={browserless_key}"
+            )
+            _active_contexts[thread_id] = browser.contexts[0]
+        else:
+            print("[BROWSER] Launching local Chromium...")
+            _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
+                user_data_dir=f"./browser_data_{thread_id}",
+                headless=is_headless,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-gpu",
+                    "--disable-software-rasterizer",
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--js-flags='--max-old-space-size=256'",
+                    "--disable-features=site-per-process"
+                ],
+                ignore_default_args=["--enable-automation"],
+            )
 
     try:
         page = _active_pages.get(thread_id)
@@ -75,20 +84,28 @@ def get_browser_page(thread_id: str):
         except:
             pass
 
-        _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
-            user_data_dir=f"./browser_data_{thread_id}",
-            headless=is_headless,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--disable-gpu",
-                "--disable-software-rasterizer",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--js-flags='--max-old-space-size=256'"
-            ],
-            ignore_default_args=["--enable-automation"],
-        )
+        browserless_key = os.environ.get("BROWSERLESS_API_KEY")
+        if browserless_key:
+            print("[BROWSER] Reconnecting to Browserless.io...")
+            browser = _active_playwrights[thread_id].chromium.connect_over_cdp(
+                f"wss://chrome.browserless.io?token={browserless_key}"
+            )
+            _active_contexts[thread_id] = browser.contexts[0]
+        else:
+            _active_contexts[thread_id] = _active_playwrights[thread_id].chromium.launch_persistent_context(
+                user_data_dir=f"./browser_data_{thread_id}",
+                headless=is_headless,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-gpu",
+                    "--disable-software-rasterizer",
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--js-flags='--max-old-space-size=256'"
+                ],
+                ignore_default_args=["--enable-automation"],
+            )
         page = _active_contexts[thread_id].new_page()
         # Block images/media to save RAM
         page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font"] else route.continue_())
