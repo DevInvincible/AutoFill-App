@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# Reverting to gemini-1.5-flash as the 8b variant requires a newer google API version
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+# Using the exact '-latest' alias which is officially supported in v1beta to prevent 404s
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
 
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not configured")
@@ -475,7 +475,7 @@ def analyze_form_questions(
         
         # Fallback: if AI is down, we pass all unanswered fields to the user to fill manually!
         fallback_answers = []
-        for q in mapped_form.get("agent_unanswered", []):
+        for q in mapped_form.get("unanswered_questions", []):
             fallback_answers.append({
                 "id": q.get("id"),
                 "name": q.get("name"),

@@ -31,11 +31,23 @@ export default function ReviewScreen() {
   }, [data]);
 
   const answers = applyResult.agent_response?.answers || [];
+  const profileActions = applyResult.fill_actions || [];
   const threadId = applyResult.thread_id || '';
   const jobContext = applyResult.job_context || {};
 
-  const autoAnswered = answers.filter((a) => !a.needs_user_input);
-  const needsInput = answers.filter((a) => a.needs_user_input);
+  const autoAnswered = [
+    ...profileActions.map((action: any) => ({
+      id: action.id,
+      name: action.name,
+      question: action.label || action.semantic_type,
+      field_type: action.field_type,
+      answer: action.value,
+      needs_user_input: false,
+      answer_source: 'Your Profile'
+    })),
+    ...answers.filter((a: any) => !a.needs_user_input)
+  ];
+  const needsInput = answers.filter((a: any) => a.needs_user_input);
 
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
