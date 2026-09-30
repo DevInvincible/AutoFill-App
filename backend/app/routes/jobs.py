@@ -39,6 +39,21 @@ async def health_check():
 async def apply_to_job(data: JobAnalyzeRequest):
     if not str(data.url).startswith(("http://", "https://")):
         return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
+        
+    # Prevent filling random non-job sites (like drive, youtube, facebook)
+    blocked_domains = [
+        "drive.google.com", "docs.google.com", "youtube.com", "youtu.be",
+        "facebook.com", "instagram.com", "twitter.com", "x.com",
+        "tiktok.com", "reddit.com", "netflix.com", "amazon.com", "mail.google.com"
+    ]
+    url_lower = str(data.url).lower()
+    for domain in blocked_domains:
+        if domain in url_lower:
+            return {
+                "success": False, 
+                "error": f"The URL appears to be a link to {domain}, which is not a supported job board.",
+                "message": "Invalid Job URL"
+            }
     try:
         result = await click_apply(
             str(data.url),

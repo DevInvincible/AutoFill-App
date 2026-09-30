@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# gemini-1.5-flash-8b is less prone to 503s because it's lighter and faster
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-8b")
+# Reverting to gemini-1.5-flash as the 8b variant requires a newer google API version
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not configured")
