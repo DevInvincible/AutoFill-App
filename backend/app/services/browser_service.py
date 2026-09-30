@@ -429,17 +429,26 @@ Buttons/Links:
         try:
             apply_button.click(force=True, timeout=5000)
         except Exception as e:
+            e_str = str(e)
+            if "TargetClosedError" in e_str or "closed" in e_str.lower():
+                return {"success": False, "message": "The browser session was closed by Browserless before the Apply button could be clicked. Please try again."}
             print(f"Failed to click apply button normally, trying JS click... {e}")
-            apply_button.evaluate("node => node.click()")
+            try:
+                apply_button.evaluate("node => node.click()")
+            except Exception as e2:
+                if "TargetClosedError" in str(e2) or "closed" in str(e2).lower():
+                    return {"success": False, "message": "The browser session was closed by Browserless before the Apply button could be clicked. Please try again."}
+                print(f"JS click also failed: {e2}")
 
         try:
             page.wait_for_timeout(2000)
         except Exception as e:
             print(f"Warning: page wait failed or crashed: {e}")
-            return {
-                "success": False,
-                "message": "The web page crashed or ran out of memory. Please try again or try a different job posting."
-            }
+            if "TargetClosedError" in str(e) or "closed" in str(e).lower():
+                return {
+                    "success": False,
+                    "message": "The web page crashed or ran out of memory. Please try again or try a different job posting."
+                }
 
         # If clicking opened a new tab (e.g. redirect to Workday/Greenhouse), switch to it!
         if len(context.pages) > pages_before:
