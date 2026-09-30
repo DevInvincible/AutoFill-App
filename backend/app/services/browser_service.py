@@ -468,89 +468,112 @@ Buttons/Links:
 
         print("Application form opened via button click!")
 
-    # 1. Extract complete form (whether we clicked a button or it was a direct link)
+    # -------------------------------------------------------------
+    # EXTRACTION LOOP (Retry if modal is slow to load)
+    # -------------------------------------------------------------
     set_progress(thread_id, 65, "Extracting form structure...")
-    form_data = extract_form(page)
+    
+    max_retries = 3
+    fields = []
+    mapped_form = {}
+    ignored_labels = {"search", "attach", "upload", "select language", "language"}
+    
+    for attempt in range(max_retries):
+        form_data = extract_form(page)
+        mapped_form = map_form_fields(form_data)
+        raw_fields = mapped_form.get("fields", []) if mapped_form else []
+        
+        # 1. First, strictly filter out all garbage background fields!
+        fields = []
+        for f in raw_fields:
+            f_id = str(f.get("id", "")).lower()
+            f_name = str(f.get("name", "")).lower()
+            f_placeholder = str(f.get("placeholder", "")).lower()
+            f_label = str(f.get("label", "")).lower().strip()
+            f_type = f.get("type", "")
+            
+            if f_type == "search" or f_type == "file" or f_type == "hidden":
+                continue
+                
+            if any(ignored in f_label for ignored in ignored_labels):
+                continue
+                
+            # Filter background garbage
+            is_background_garbage = any(
+                bad in f_id or bad in f_name or bad in f_placeholder 
+                for bad in ["search", "login", "nav", "footer", "language", "password"]
+            )
+            if is_background_garbage:
+                continue
+                
+            # Ignore completely ghost fields
+            if not f_label and not f_id and not f_name and not f_placeholder:
+                continue
+                
+            fields.append(f)
+            
+        mapped_form["fields"] = fields
+        
+        if not apply_button:
+            if len(fields) == 0:
+                if attempt < max_retries - 1:
+                    page.wait_for_timeout(2000)
+                    continue
+                return {
+                    "success": False,
+                    "message": "No Apply button found, and this page does not appear to be an application form (no inputs detected).",
+                }
+                
+        # 2. Heuristic check: Does this form ask for job-related things?
+        has_job_fields = False
+        if len(fields) > 0:
+            for f in fields:
+                st = str(f.get("semantic_type", ""))
+                label = str(f.get("label", "")).lower()
+                name = str(f.get("name", "")).lower()
+                
+                if st in ["first_name", "last_name", "name", "email", "tel", "resume", "linkedin", "portfolio", "cover_letter"]:
+                    has_job_fields = True
+                    break
+                if any(k in label or k in name for k in ["resume", "cv", "first name", "last name", "email", "phone", "linkedin", "cover letter", "portfolio"]):
+                    has_job_fields = True
+                    break
+                    
+        if has_job_fields:
+            break # Modal is successfully loaded and valid!
+            
+        # If we got here, we clicked Apply, but no job fields appeared yet. Wait and retry!
+        if attempt < max_retries - 1:
+            print(f"[EXTRACT] No job fields found on attempt {attempt+1}, waiting for modal...")
+            page.wait_for_timeout(2000)
 
-    # 2. Map complete form
-    set_progress(thread_id, 75, "Mapping fields & identifying inputs...")
-    mapped_form = map_form_fields(form_data)
-    
-    # Validate that we are actually looking at a job application form
-    fields = mapped_form.get("fields", []) if mapped_form else []
-    
-    if not apply_button:
-        if len(fields) == 0:
+    if not has_job_fields:
+        if apply_button:
             return {
                 "success": False,
-                "message": "No Apply button found, and this page does not appear to be an application form (no inputs detected).",
+                "message": "Apply button was clicked, but no actual job application fields were found. The site may require you to log in first, or it redirected to an unsupported portal.",
             }
-            
-    # Heuristic check: Does this form ask for job-related things?
-    # This must run even if an apply_button WAS found, to prevent scraping raw site footers
-    # if the apply button just anchored down the page without loading a real form.
-    if len(fields) > 0:
-        has_job_fields = False
-        for f in fields:
-            st = str(f.get("semantic_type", ""))
-            label = str(f.get("label", "")).lower()
-            name = str(f.get("name", "")).lower()
-            
-            if st in ["first_name", "last_name", "name", "email", "tel", "resume", "linkedin", "portfolio", "cover_letter"]:
-                has_job_fields = True
-                break
-            if any(k in label or k in name for k in ["resume", "cv", "first name", "last name", "email", "phone", "linkedin", "cover letter", "portfolio"]):
-                has_job_fields = True
-                break
-                
-        if not has_job_fields:
-            if apply_button:
-                return {
-                    "success": False,
-                    "message": "Apply button was clicked, but no actual job application fields were found. The site may require you to log in first, or it redirected to an unsupported portal.",
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "No Apply button found, and the form fields on this page do not appear to be for a job application.",
-                }
+        else:
+            return {
+                "success": False,
+                "message": "No Apply button found, and the form fields on this page do not appear to be for a job application.",
+            }
 
     # 3. Prepare known profile fields
+    set_progress(thread_id, 75, "Mapping fields & identifying inputs...")
     fill_actions = prepare_fill_actions(
         mapped_form,
         profile,
     )
 
     # Re-calculate unanswered questions to include any profile fields that the user was missing data for
-    # and aggressively filter out background page elements (like nav search bars) if a modal is open.
     handled_ids = {a.get("id") for a in fill_actions if a.get("id")}
-    ignored_labels = {"search", "attach", "upload", "select language", "language"}
     
     actual_unanswered = []
     for f in fields:
         f_id = str(f.get("id", "")).lower()
-        f_name = str(f.get("name", "")).lower()
-        f_placeholder = str(f.get("placeholder", "")).lower()
-        f_label = str(f.get("label", "")).lower().strip()
-        f_type = f.get("type", "")
-        
         if f_id and f_id in handled_ids:
             continue
-            
-        if f_type == "search" or f_type == "file" or f_type == "hidden":
-            continue
-            
-        if any(ignored in f_label for ignored in ignored_labels):
-            continue
-            
-        # The user's suggestion: filter by id, name, or placeholder for common background elements!
-        is_background_garbage = any(
-            bad in f_id or bad in f_name or bad in f_placeholder 
-            for bad in ["search", "login", "nav", "footer", "language", "password"]
-        )
-        if is_background_garbage:
-            continue
-            
         actual_unanswered.append(f)
         
     mapped_form["unanswered_questions"] = actual_unanswered
