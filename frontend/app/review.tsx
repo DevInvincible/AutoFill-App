@@ -43,7 +43,9 @@ export default function ReviewScreen() {
       field_type: action.field_type,
       answer: action.value,
       needs_user_input: false,
-      answer_source: 'Your Profile'
+      answer_source: 'Your Profile',
+      options: [],
+      confidence: 1.0
     })),
     ...answers.filter((a: any) => !a.needs_user_input)
   ];
