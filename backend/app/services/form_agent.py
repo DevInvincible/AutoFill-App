@@ -23,7 +23,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Using the exact '-latest' alias which is officially supported in v1beta to prevent 404s
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # ============================================================
 # LLM
@@ -490,7 +490,7 @@ def analyze_form_questions(
             fallback_answers.append({
                 "id": q.get("id"),
                 "name": q.get("name"),
-                "question": q.get("label", "Unknown Field"),
+                "question": q.get("label") or q.get("placeholder") or q.get("name") or "Unknown Field",
                 "field_type": q.get("type", "text"),
                 "options": q.get("options", []),
                 "answer": None,
