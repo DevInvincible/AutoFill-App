@@ -54,7 +54,9 @@ def get_browser_page(thread_id: str):
                 "--disable-software-rasterizer",
                 "--disable-dev-shm-usage",
                 "--no-sandbox",
-                "--disable-setuid-sandbox"
+                "--disable-setuid-sandbox",
+                "--js-flags='--max-old-space-size=256'",
+                "--disable-features=site-per-process"
             ],
             ignore_default_args=["--enable-automation"],
         )
@@ -408,7 +410,15 @@ Buttons/Links:
             print(f"Failed to click apply button normally, trying JS click... {e}")
             apply_button.evaluate("node => node.click()")
 
-        page.wait_for_timeout(2000)
+        try:
+            page.wait_for_timeout(2000)
+        except Exception as e:
+            print(f"Warning: page wait failed or crashed: {e}")
+            return {
+                "success": False,
+                "message": "The web page crashed or ran out of memory. Please try again or try a different job posting."
+            }
+
 
         # Check if clicking Apply brought up a login wall or modal
         current_url_after = page.url.lower()
