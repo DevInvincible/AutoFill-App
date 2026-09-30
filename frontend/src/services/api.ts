@@ -113,12 +113,14 @@ export interface FillResponse {
 export async function applyToJob(
   url: string,
   profile: UserProfile,
-  cookies?: any[]
+  cookies?: any[],
+  thread_id?: string
 ): Promise<ApplyResponse> {
   const response = await api.post('/jobs/apply', {
     url,
     profile,
     cookies,
+    thread_id,
   });
   return response.data;
 }
@@ -156,6 +158,15 @@ export const cancelLogin = async () => {
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error.message;
+  }
+};
+
+export const getJobStatus = async (threadId: string): Promise<{progress: number, label: string}> => {
+  try {
+    const response = await api.get(`/jobs/status/${threadId}`);
+    return { progress: response.data.progress, label: response.data.label };
+  } catch (e) {
+    return { progress: 0, label: 'Connecting...' };
   }
 };
 

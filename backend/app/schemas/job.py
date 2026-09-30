@@ -8,6 +8,7 @@ class JobAnalyzeRequest(BaseModel):
     url: HttpUrl
     profile: UserProfile
     cookies: list[dict] | None = None
+    thread_id: str | None = None
 
 
 class JobResponse(BaseModel):

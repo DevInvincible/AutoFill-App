@@ -25,6 +25,10 @@ _active_playwrights = {}
 _active_contexts = {}
 _active_pages = {}
 _active_login_pages = {}
+_task_progress = {}
+
+def set_progress(thread_id: str, pct: int, label: str):
+    _task_progress[thread_id] = {"pct": pct, "label": label}
 
 def get_executor(thread_id: str) -> ThreadPoolExecutor:
     if thread_id not in _session_executors:
@@ -222,6 +226,7 @@ def click_apply_sync(
     profile: UserProfile,
     cookies: list[dict] = None,
 ):
+    set_progress(thread_id, 10, "Setting up browser session...")
     page = get_browser_page(thread_id)
     
     if cookies:
@@ -278,7 +283,9 @@ def click_apply_sync(
         }
 
     # Extract job information BEFORE opening the application form.
+    set_progress(thread_id, 35, "Scanning page layout...")
     job_context = extract_job_context(page)
+    set_progress(thread_id, 45, "Searching for Apply button...")
     
     # ------------------------------------------------------------------
     # Find Action button — multi-strategy for different portals
@@ -422,9 +429,11 @@ Buttons/Links:
         print("Application form opened via button click!")
 
     # 1. Extract complete form (whether we clicked a button or it was a direct link)
+    set_progress(thread_id, 65, "Extracting form structure...")
     form_data = extract_form(page)
 
     # 2. Map complete form
+    set_progress(thread_id, 75, "Mapping fields & identifying inputs...")
     mapped_form = map_form_fields(form_data)
     
     # Validate that we are actually looking at a job application form
@@ -463,6 +472,7 @@ Buttons/Links:
         profile,
     )
 
+    set_progress(thread_id, 85, "AI Agent answering questions...")
     agent_result = analyze_form_questions(
         mapped_form=mapped_form,
         profile=profile,
@@ -1256,9 +1266,10 @@ async def click_apply(
     url: str,
     profile: UserProfile,
     cookies: list[dict] = None,
+    thread_id_override: str = None,
 ):
     loop = asyncio.get_running_loop()
-    thread_id = str(uuid.uuid4())
+    thread_id = thread_id_override or str(uuid.uuid4())
 
     return await loop.run_in_executor(
         get_executor(thread_id),

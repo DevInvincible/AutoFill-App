@@ -35,6 +35,12 @@ router = APIRouter(
 async def health_check():
     return {"status": "ok"}
 
+@router.get("/status/{thread_id}")
+async def get_status(thread_id: str):
+    from app.services.browser_service import _task_progress
+    status = _task_progress.get(thread_id, {"pct": 0, "label": "Initializing..."})
+    return {"success": True, "progress": status["pct"], "label": status["label"]}
+
 @router.post("/apply")
 async def apply_to_job(data: JobAnalyzeRequest):
     if not str(data.url).startswith(("http://", "https://")):
@@ -42,9 +48,10 @@ async def apply_to_job(data: JobAnalyzeRequest):
         
     try:
         result = await click_apply(
-            str(data.url),
-            data.profile,
-            data.cookies,
+            url=str(data.url),
+            profile=data.profile,
+            cookies=data.cookies,
+            thread_id_override=data.thread_id,
         )
 
         return result

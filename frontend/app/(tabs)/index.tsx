@@ -21,7 +21,7 @@ import * as Notifications from 'expo-notifications';
 import Animated, { FadeInUp, FadeInDown, StretchInY } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { applyToJob, UserProfile } from '../../src/services/api';
+import { applyToJob, UserProfile, getJobStatus } from '../../src/services/api';
 
 const PROFILE_KEY = '@user_profile';
 const ACTIVE_JOBS_KEY = '@active_jobs';
@@ -116,24 +116,25 @@ export default function HomeScreen() {
   );
 
   // ── Progress bar animation helpers ─────────────────────────────────────
-  const startProgressAnimation = (jobUrl: string) => {
-    stepIndexRef.current = 0;
-    setActiveProcess({ jobUrl, progress: 0, label: PROGRESS_STEPS[0].label });
+  const startProgressAnimation = (jobUrl: string, threadId: string) => {
+    setActiveProcess({ jobUrl, progress: 0, label: 'Initializing...' });
     progressAnim.setValue(0);
 
-    progressIntervalRef.current = setInterval(() => {
-      const nextIndex = stepIndexRef.current + 1;
-      if (nextIndex < PROGRESS_STEPS.length) {
-        const step = PROGRESS_STEPS[nextIndex];
-        stepIndexRef.current = nextIndex;
-        setActiveProcess(prev => prev ? { ...prev, progress: step.pct, label: step.label } : prev);
-        RNAnimated.timing(progressAnim, {
-          toValue: step.pct / 100,
-          duration: 800,
-          useNativeDriver: false,
-        }).start();
+    progressIntervalRef.current = setInterval(async () => {
+      try {
+        const status = await getJobStatus(threadId);
+        if (status && status.progress > 0) {
+          setActiveProcess(prev => prev ? { ...prev, progress: status.progress, label: status.label } : prev);
+          RNAnimated.timing(progressAnim, {
+            toValue: status.progress / 100,
+            duration: 800,
+            useNativeDriver: false,
+          }).start();
+        }
+      } catch (e) {
+        console.log("Status poll error", e);
       }
-    }, 3500);
+    }, 2000);
   };
 
   const finishProgressAnimation = (success: boolean, label: string) => {
@@ -227,7 +228,8 @@ export default function HomeScreen() {
     const cookies = findCookiesForUrl(allCookies, jobUrl.trim());
 
     // Start the in-app progress bar
-    startProgressAnimation(jobUrl.trim());
+    const threadId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    startProgressAnimation(jobUrl.trim(), threadId);
 
     // Post a persistent "in-progress" notification
     await Notifications.scheduleNotificationAsync({
@@ -239,7 +241,7 @@ export default function HomeScreen() {
       trigger: null,
     });
 
-    applyToJob(jobUrl.trim(), profile, cookies)
+    applyToJob(jobUrl.trim(), profile, cookies, threadId)
       .then(async (result) => {
         setLoading(false);
 
