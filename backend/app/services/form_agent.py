@@ -533,21 +533,76 @@ def analyze_form_questions(
             finally:
                 _self_module.llm = original_llm
         
-        # Last resort: pass ALL form fields to the user to fill manually
+        # Last resort: try to auto-fill from profile where possible,
+        # only send truly unknown fields to user as manual input
+        profile_data = profile.model_dump()
         all_fields = mapped_form.get("fields", [])
-        # Include both unanswered AND any fields with no profile match
         fallback_answers = []
+        
+        # Simple semantic_type → profile_key mapping for auto-fill without AI
+        PROFILE_MAP = {
+            "first_name": "first_name",
+            "last_name": "last_name",
+            "full_name": None,  # special case
+            "email": "email",
+            "phone": "phone",
+            "location": "location",
+            "city": "location",
+            "linkedin": "linkedin",
+            "portfolio": "portfolio",
+            "website": "website",
+            "current_job_title": "current_job_title",
+            "current_employer": "current_employer",
+            "years_of_experience": "years_of_experience",
+            "salary_expectation": "salary_expectation",
+        }
+        
         for q in all_fields:
+            st = q.get("semantic_type", "")
+            label = q.get("label") or q.get("placeholder") or q.get("name") or ""
+            
+            # Skip ghost fields with no identity
+            if not label:
+                continue
+            
+            # Clean up options: filter out null/empty/object options
+            raw_options = q.get("options", []) or []
+            clean_options = []
+            for opt in raw_options:
+                if opt is None:
+                    continue
+                if isinstance(opt, dict):
+                    opt_label = opt.get("label") or opt.get("text") or opt.get("value") or ""
+                    if opt_label and opt_label.strip():
+                        clean_options.append(opt_label)
+                elif isinstance(opt, str) and opt.strip():
+                    clean_options.append(opt)
+            
+            # Try to auto-fill from profile
+            auto_answer = None
+            auto_source = None
+            
+            if st == "full_name":
+                first = profile_data.get("first_name", "")
+                last = profile_data.get("last_name", "")
+                auto_answer = f"{first} {last}".strip() or None
+                auto_source = "profile"
+            elif st in PROFILE_MAP and PROFILE_MAP[st]:
+                auto_answer = profile_data.get(PROFILE_MAP[st])
+                auto_source = "profile" if auto_answer else None
+            
+            needs_input = not bool(auto_answer)
+            
             fallback_answers.append({
                 "id": q.get("id"),
                 "name": q.get("name"),
-                "question": q.get("label") or q.get("placeholder") or q.get("name") or "Unknown Field",
+                "question": label,
                 "field_type": q.get("type", "text"),
-                "options": q.get("options", []),
-                "answer": None,
-                "confidence": 0.0,
-                "needs_user_input": True,
-                "answer_source": "AI Unavailable - Manual Input Required"
+                "options": clean_options,
+                "answer": auto_answer,
+                "confidence": 1.0 if auto_answer else 0.0,
+                "needs_user_input": needs_input,
+                "answer_source": auto_source or "AI Unavailable - Manual Input Required"
             })
             
         return {
@@ -558,7 +613,7 @@ def analyze_form_questions(
             },
             "__interrupt__": (
                 ("interrupt", "needs_input") 
-                if fallback_answers else None
+                if any(a["needs_user_input"] for a in fallback_answers) else None
             )
         }
 

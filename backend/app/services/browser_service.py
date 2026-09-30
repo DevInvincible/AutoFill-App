@@ -506,8 +506,8 @@ Buttons/Links:
             if is_background_garbage:
                 continue
                 
-            # Ignore completely ghost fields
-            if not f_label and not f_id and not f_name and not f_placeholder:
+            # Ignore ghost fields: must have a visible label or placeholder
+            if not f_label and not f_placeholder:
                 continue
                 
             fields.append(f)
