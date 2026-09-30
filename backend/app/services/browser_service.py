@@ -427,12 +427,35 @@ Buttons/Links:
     # 2. Map complete form
     mapped_form = map_form_fields(form_data)
     
-    # If we didn't click an apply button AND we found no form fields, it's a dead end.
-    if not apply_button and not mapped_form:
-        return {
-            "success": False,
-            "message": "No Apply button found, and this page does not appear to be an application form (no inputs detected).",
-        }
+    # Validate that we are actually looking at a job application form
+    fields = mapped_form.get("fields", []) if mapped_form else []
+    
+    if not apply_button:
+        if len(fields) == 0:
+            return {
+                "success": False,
+                "message": "No Apply button found, and this page does not appear to be an application form (no inputs detected).",
+            }
+            
+        # Heuristic check: Does this form ask for job-related things?
+        has_job_fields = False
+        for f in fields:
+            st = str(f.get("semantic_type", ""))
+            label = str(f.get("label", "")).lower()
+            name = str(f.get("name", "")).lower()
+            
+            if st in ["first_name", "last_name", "name", "email", "tel", "resume", "linkedin", "portfolio", "cover_letter"]:
+                has_job_fields = True
+                break
+            if any(k in label or k in name for k in ["resume", "cv", "first name", "last name", "email", "phone", "linkedin", "cover letter", "portfolio"]):
+                has_job_fields = True
+                break
+                
+        if not has_job_fields:
+            return {
+                "success": False,
+                "message": "No Apply button found, and the form fields on this page do not appear to be for a job application.",
+            }
 
     # 3. Prepare known profile fields
     fill_actions = prepare_fill_actions(
