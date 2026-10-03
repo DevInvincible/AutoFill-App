@@ -32,7 +32,8 @@
           "icon": "./assets/icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "expo-share-intent"
     ],
     "extra": {
       "router": {},

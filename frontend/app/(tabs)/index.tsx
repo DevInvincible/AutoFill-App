@@ -20,6 +20,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import Animated, { FadeInUp, FadeInDown, StretchInY } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useShareIntent } from 'expo-share-intent';
 
 import { applyToJob, UserProfile, getJobStatus } from '../../src/services/api';
 
@@ -87,6 +88,24 @@ export default function HomeScreen() {
   const progressAnim = useRef(new RNAnimated.Value(0)).current;
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stepIndexRef = useRef(0);
+
+  // ── Share Intent Listener ────────────────────────────────────────────────
+  const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntent();
+
+  useEffect(() => {
+    if (hasShareIntent && shareIntent.value) {
+      // Clean up text if they shared a URL with some text (e.g., from a tweet or a post)
+      const urlMatch = shareIntent.value.match(/https?:\/\/[^\s]+/);
+      const incomingUrl = urlMatch ? urlMatch[0] : shareIntent.value;
+      setUrl(incomingUrl);
+      resetShareIntent();
+      
+      // Automatically trigger apply
+      if (incomingUrl && profile) {
+        setTimeout(() => handleApply(incomingUrl), 500);
+      }
+    }
+  }, [hasShareIntent, shareIntent, resetShareIntent, profile]);
 
   // ── Auto-resume after login ──────────────────────────────────────────────
   useEffect(() => {
