@@ -239,6 +239,13 @@ export default function HomeScreen() {
     }
 
     // ────────────────────────────────────────────────────────────────────────
+    // NEW ARCHITECTURE: Auto-WebView for Indeed and LinkedIn
+    if (lowerUrl.includes('indeed.com') || lowerUrl.includes('linkedin.com')) {
+       router.push({ pathname: '/webview', params: { url: jobUrl.trim() } });
+       setUrl('');
+       return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
     
     await requestPermissions();
     setLoading(true);

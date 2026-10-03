@@ -135,6 +135,19 @@ export default function JobWebViewScreen() {
                         }
                     }
                 });
+                setTimeout(() => {
+                    const btns = Array.from(document.querySelectorAll('button'));
+                    const target = btns.find(b => 
+                        b.innerText.toLowerCase().includes('next') || 
+                        b.innerText.toLowerCase().includes('continue') || 
+                        b.innerText.toLowerCase().includes('submit') || 
+                        b.innerText.toLowerCase().includes('apply')
+                    );
+                    if (target && !target.disabled) {
+                        target.click();
+                    }
+                }, 1500);
+                
                 window.ReactNativeWebView.postMessage(JSON.stringify({ type: "FILL_COMPLETE" }));
              })();
            `;
@@ -185,8 +198,9 @@ export default function JobWebViewScreen() {
         style={styles.webview}
         onMessage={handleMessage}
         onLoadEnd={() => {
-           setStatus('Ready to assist.');
+           setStatus('Auto-scanning form...');
            setLoading(false);
+           setTimeout(injectExtractionScript, 2000);
         }}
         onLoadStart={() => {
            setStatus('Loading page...');
