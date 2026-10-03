@@ -239,15 +239,7 @@ export default function HomeScreen() {
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // NEW ARCHITECTURE: If Indeed or LinkedIn, use the Local WebView instead
-    // of the Cloud Backend.
-    if (lowerUrl.includes('indeed.com') || lowerUrl.includes('linkedin.com')) {
-       router.push({ pathname: '/webview', params: { url: jobUrl.trim() } });
-       setUrl('');
-       return;
-    }
-    // ────────────────────────────────────────────────────────────────────────
-
+    
     await requestPermissions();
     setLoading(true);
     setUrl('');
