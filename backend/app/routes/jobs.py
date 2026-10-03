@@ -183,7 +183,7 @@ async def analyze_local_endpoint(data: LocalFormAnalyzeRequest, user_id: str = D
         
         return {
             "success": True,
-            "agent_response": agent_result,
+            "agent_response": agent_result.get("agent_response", {}),
             "total_questions": len(data.fields),
         }
     except Exception as e:

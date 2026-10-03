@@ -47,7 +47,7 @@ export default function JobWebViewScreen() {
               return labelText;
            }
 
-           const inputs = Array.from(document.querySelectorAll("input:not([type='hidden']):not([type='checkbox']):not([type='radio'])")).map(el => {
+           const inputs = Array.from(document.querySelectorAll("input:not([type='hidden']):not([type='checkbox']):not([type='radio']), select, textarea")).map(el => {
               if (el.offsetParent === null) return null;
               return {
                  id: el.id,
