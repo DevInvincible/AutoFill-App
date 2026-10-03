@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import QuestionCard from '../src/components/QuestionCard';
 import StatusBadge from '../src/components/StatusBadge';
 import { ApplyResponse, AgentAnswer, submitAnswers, fillForm } from '../src/services/api';
+import { supabase } from '../src/lib/supabase';
 
 const ACTIVE_JOBS_KEY = '@active_jobs';
 
@@ -133,6 +134,22 @@ export default function ReviewScreen() {
           },
           trigger: null,
         });
+
+        // Save to Supabase History
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            await supabase.from('job_applications').insert({
+              user_id: session.user.id,
+              company_name: jobContext?.page_title || 'Unknown Company',
+              job_title: jobContext?.job_title || applyResult.title || 'Job Application',
+              job_url: applyResult.url || '',
+              status: 'success'
+            });
+          }
+        } catch (err) {
+          console.error("History save error:", err);
+        }
 
         // Navigate directly to the result screen
         router.replace({ pathname: '/result', params: { data: JSON.stringify(result) } });
