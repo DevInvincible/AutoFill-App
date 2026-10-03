@@ -248,7 +248,7 @@ export default function HomeScreen() {
        
        // Show a fake loading progress for the background webview
        setLoading(true);
-       setActiveProcess({ label: 'Analyzing form via Background Device Worker...', progress: 10 });
+       setActiveProcess({ label: 'Analyzing form via Background Device Worker...', progress: 10, jobUrl: jobUrl.trim() });
        RNAnimated.timing(progressAnim, { toValue: 0.1, duration: 600, useNativeDriver: false }).start();
        
        return;

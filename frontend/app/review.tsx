@@ -208,18 +208,12 @@ export default function ReviewScreen() {
               </View>
             </View>
             <View style={styles.tagsRow}>
-               <View style={styles.tag}>
-                  <Ionicons name="location-outline" size={12} color="#ccc" />
-                  <Text style={styles.tagText}>San Francisco, CA</Text>
-               </View>
-               <View style={styles.tag}>
-                  <Ionicons name="cloud-outline" size={12} color="#ccc" />
-                  <Text style={styles.tagText}>Remote</Text>
-               </View>
-               <View style={styles.tag}>
-                  <Ionicons name="flame" size={12} color="#FFA726" />
-                  <Text style={[styles.tagText, styles.matchScore]}>78% Match</Text>
-               </View>
+               {jobContext.location && (
+                 <View style={styles.tag}>
+                    <Ionicons name="location-outline" size={12} color="#ccc" />
+                    <Text style={styles.tagText}>{jobContext.location}</Text>
+                 </View>
+               )}
             </View>
           </Animated.View>
         )}
