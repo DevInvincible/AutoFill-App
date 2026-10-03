@@ -85,25 +85,23 @@ async def apply_to_job(data: JobAnalyzeRequest):
     except Exception:
         return {"success": False, "error": "Malformed URL."}
 
-    # Phase 3 Security: Prevent SSRF and cookie theft by whitelisting trusted ATS domains
-    allowed_domains = [
-        "greenhouse.io",
-        "lever.co",
-        "ashbyhq.com",
-        "workable.com",
-        "breezy.hr",
-        "myworkdayjobs.com",
-        "icims.com",
-        "smartrecruiters.com",
-        "linkedin.com",
-        "jobs.lever.co",
+    # Phase 3 Security: SSRF Protection
+    # Block internal IPs, localhost, and cloud metadata endpoints
+    suspicious_domains = [
+        "localhost",
+        "127.0.0.1",
+        "169.254.169.254", # Cloud metadata
+        "0.0.0.0",
+        "::1"
     ]
-
-    if not any(hostname == domain or hostname.endswith("." + domain) for domain in allowed_domains):
+    
+    is_suspicious = any(hostname == bad for bad in suspicious_domains)
+    # Also block local TLDs
+    if hostname.endswith((".local", ".internal", ".arpa")) or is_suspicious:
         return {
             "success": False,
-            "error": "Security Guard: Unsupported domain. To protect your session data, we only allow known, trusted Job Board domains.",
-            "message": "Domain not in ATS whitelist.",
+            "error": "Security Guard: Blocked suspicious or internal URL.",
+            "message": "SSRF prevention triggered.",
         }
     try:
         result = await click_apply(
