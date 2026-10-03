@@ -10,10 +10,11 @@ import { supabase } from '../src/lib/supabase';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://autofill-app-production.up.railway.app';
 
-export default function JobWebViewScreen() {
+export default function JobWebViewScreen({ hiddenUrl }: { hiddenUrl?: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { url } = useLocalSearchParams<{ url: string }>();
+  const params = useLocalSearchParams<{ url: string }>();
+  const url = hiddenUrl || params.url;
   const webViewRef = useRef<WebView>(null);
   
   const [loading, setLoading] = useState(false);
@@ -168,6 +169,19 @@ export default function JobWebViewScreen() {
       console.error(e);
     }
   };
+
+  if (hiddenUrl) {
+    return (
+      <View style={{ width: 0, height: 0, opacity: 0 }}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: url || 'https://www.indeed.com' }}
+          onMessage={handleMessage}
+          onLoadEnd={() => setTimeout(injectExtractionScript, 2000)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>

@@ -15,6 +15,7 @@ import {
   Animated as RNAnimated,
 } from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import JobWebViewScreen from '../webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -84,6 +85,7 @@ export default function HomeScreen() {
   const [isUrlFocused, setIsUrlFocused] = useState(false);
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
   const [activeProcess, setActiveProcess] = useState<ActiveProcess | null>(null);
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
 
   const progressAnim = useRef(new RNAnimated.Value(0)).current;
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -239,10 +241,16 @@ export default function HomeScreen() {
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // NEW ARCHITECTURE: Auto-WebView for Indeed and LinkedIn
+    // NEW ARCHITECTURE: Auto-WebView for Indeed and LinkedIn IN THE BACKGROUND
     if (lowerUrl.includes('indeed.com') || lowerUrl.includes('linkedin.com')) {
-       router.push({ pathname: '/webview', params: { url: jobUrl.trim() } });
+       setBackgroundUrl(jobUrl.trim());
        setUrl('');
+       
+       // Show a fake loading progress for the background webview
+       setLoading(true);
+       setActiveProcess({ label: 'Analyzing form via Background Device Worker...', progress: 10 });
+       RNAnimated.timing(progressAnim, { toValue: 0.1, duration: 600, useNativeDriver: false }).start();
+       
        return;
     }
     // ────────────────────────────────────────────────────────────────────────
@@ -493,6 +501,7 @@ export default function HomeScreen() {
 
         <View style={{ height: Math.max(insets.bottom, 100) }} />
       </ScrollView>
+      {backgroundUrl && <JobWebViewScreen hiddenUrl={backgroundUrl} />}
     </KeyboardAvoidingView>
   );
 }
