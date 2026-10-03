@@ -43,9 +43,37 @@ async def get_status(thread_id: str):
 
 @router.post("/apply")
 async def apply_to_job(data: JobAnalyzeRequest):
-    if not str(data.url).startswith(("http://", "https://")):
+    url_str = str(data.url)
+    if not url_str.startswith(("http://", "https://")):
         return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
-        
+
+    import urllib.parse
+    try:
+        parsed_url = urllib.parse.urlparse(url_str)
+        hostname = parsed_url.hostname.lower() if parsed_url.hostname else ""
+    except Exception:
+        return {"success": False, "error": "Malformed URL."}
+
+    # Phase 3 Security: Prevent SSRF and cookie theft by whitelisting trusted ATS domains
+    allowed_domains = [
+        "greenhouse.io",
+        "lever.co",
+        "ashbyhq.com",
+        "workable.com",
+        "breezy.hr",
+        "myworkdayjobs.com",
+        "icims.com",
+        "smartrecruiters.com",
+        "linkedin.com",
+        "jobs.lever.co",
+    ]
+
+    if not any(hostname == domain or hostname.endswith("." + domain) for domain in allowed_domains):
+        return {
+            "success": False,
+            "error": "Security Guard: Unsupported domain. To protect your session data, we only allow known, trusted Job Board domains.",
+            "message": "Domain not in ATS whitelist.",
+        }
     try:
         result = await click_apply(
             url=str(data.url),
