@@ -156,6 +156,41 @@ def analyze_questions_node(state: FormAgentState):
             ).model_dump()
         }
 
+    # Step 2A: Pre-filter sensitive/legal/visa/salary questions (always ask user)
+    import re
+    sensitive_keywords = [
+        "visa", "sponsor", "salary", "compensation", "pay", "legal", "authorized",
+        "authorization", "veteran", "disability", "race", "gender", "sex", "citizenship",
+        "demographic", "hispanic", "latino", "clearance"
+    ]
+
+    llm_questions = []
+    pre_answered = []
+
+    for q in questions:
+        text_to_check = f"{q.get('label', '')} {q.get('question', '')}".lower()
+        if any(k in text_to_check for k in sensitive_keywords):
+            pre_answered.append(AgentAnswer(
+                id=q.get("id"),
+                name=q.get("name"),
+                question=q.get("label") or q.get("name") or "Unknown Question",
+                field_type=q.get("type", "text"),
+                options=q.get("options", []),
+                needs_user_input=True,
+                answer_source="user_input"
+            ))
+        else:
+            llm_questions.append(q)
+
+    # Step 2B: Use LLM for remaining questions
+    if not llm_questions:
+        return {
+            "agent_response": AgentResponse(
+                answers=pre_answered,
+                total_questions=len(pre_answered),
+            ).model_dump()
+        }
+
     structured_llm = get_structured_llm(AgentResponse)
 
     prompt = f"""
@@ -259,12 +294,13 @@ JOB CONTEXT:
 {job_context}
 
 FORM QUESTIONS:
-{questions}
+{llm_questions}
 """
 
     result = structured_llm.invoke(prompt)
 
-    # Make sure total_questions is always correct.
+    # Merge pre-answered (sensitive) with LLM answers
+    result.answers.extend(pre_answered)
     result.total_questions = len(result.answers)
 
     return {

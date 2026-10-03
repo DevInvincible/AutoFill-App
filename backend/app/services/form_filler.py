@@ -719,6 +719,26 @@ def fill_form(
                 )
 
             # ==================================================
+            # Phase 2: READ-BACK VERIFICATION
+            # ==================================================
+            read_back_value = None
+            verification_passed = None
+
+            try:
+                if field_type in ("text", "tel", "email", "textarea"):
+                    read_back_value = locator.input_value()
+                    verification_passed = (str(value).strip().lower() == str(read_back_value).strip().lower())
+                elif field_type == "checkbox":
+                    read_back_value = locator.is_checked()
+                    # value is likely a boolean
+                    expected_bool = str(value).lower() in ("true", "yes", "1")
+                    verification_passed = (expected_bool == read_back_value)
+                # Other types (select, radio, custom_dropdown, file) can be harder to read back simply, 
+                # skipping strict verification for them for now.
+            except Exception as e:
+                print(f"Read-back verification failed for {label}: {e}")
+
+            # ==================================================
             # RESULT
             # ==================================================
 
@@ -727,6 +747,8 @@ def fill_form(
                 "label": label,
                 "value": value,
                 "status": status,
+                "read_back": read_back_value,
+                "verified": verification_passed,
             })
 
         except Exception as e:

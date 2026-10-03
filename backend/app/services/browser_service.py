@@ -1827,10 +1827,18 @@ def fill_job_form_sync(thread_id: str):
         interrupt = new_agent_result.get("__interrupt__")
 
     elif submit_buttons.count() > 0 and submit_buttons.first.is_visible():
-        print("Found SUBMIT button, clicking to submit application!")
-        submit_buttons.first.click()
-        page.wait_for_timeout(3000)
-        status = "submitted"
+        if session.get("has_submitted"):
+            print("Already submitted this form (Idempotent Submit). Skipping click.")
+            status = "submitted"
+        else:
+            print("Found SUBMIT button, clicking to submit application!")
+            submit_buttons.first.click()
+            page.wait_for_timeout(3000)
+            status = "submitted"
+            
+            # Mark session as submitted so a retry never double-submits
+            session["has_submitted"] = True
+            save_session(thread_id, session)
 
     # Grab mapped form before potentially deleting session
     current_session = get_session(thread_id)
