@@ -205,15 +205,16 @@ NEVER invent or guess personal facts about the applicant.
 
 There are THREE possible answer sources:
 
-1. PROFILE
-Use this when the user's profile contains the answer.
+2. SAVED_ANSWERS
+If the question is similar to one of the user's custom saved answers,
+you MUST use their exact saved answer verbatim.
 
-2. JOB_CONTEXT
+3. JOB_CONTEXT
 Use this for reasonable professional/application answers that can
 be generated from the job description, company information, role,
 skills, experience, or career motivation.
 
-3. USER_INPUT
+4. USER_INPUT
 Use this when the question requires a personal fact, personal
 history, personal preference, or information that is not available.
 
@@ -250,7 +251,8 @@ For general professional questions such as:
 "What interests you about this role?"
 "Why are you a good fit?"
 
-you MAY generate a concise professional answer using the
+FIRST, check if the user provided a SAVED_ANSWER for this. 
+If not, you MAY generate a concise professional answer using the
 profile and job context.
 
 Do not claim experience, employment, education, achievements,
@@ -290,14 +292,24 @@ If needs_user_input is false:
 USER PROFILE:
 {profile}
 
+SAVED ANSWERS BANK:
+{saved_answers}
+
 JOB CONTEXT:
 {job_context}
 
 FORM QUESTIONS:
 {llm_questions}
 """
+    
+    saved_answers = profile.get("saved_answers", {})
 
-    result = structured_llm.invoke(prompt)
+    result = structured_llm.invoke(prompt.format(
+        profile=profile,
+        saved_answers=saved_answers,
+        job_context=job_context,
+        llm_questions=llm_questions
+    ))
 
     # Merge pre-answered (sensitive) with LLM answers
     result.answers.extend(pre_answered)

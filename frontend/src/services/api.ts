@@ -69,6 +69,7 @@ export interface UserProfile {
   experience?: string;
   resume?: string;
   cover_letter?: string;
+  saved_answers?: Record<string, string>;
 }
 
 export interface AgentAnswer {

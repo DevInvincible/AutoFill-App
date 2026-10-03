@@ -7,6 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInUp, StretchInY } from 'react-native-reanimated';
@@ -30,6 +31,7 @@ const defaultProfile: UserProfile = {
   gender: '',
   experience: '',
   resume: '',
+  saved_answers: {},
 };
 
 export default function ProfileScreen() {
@@ -106,6 +108,69 @@ export default function ProfileScreen() {
           ))}
         </Animated.View>
 
+        <Animated.View entering={StretchInY.duration(500).delay(200)} style={[styles.formContainer, { marginTop: 20 }]}>
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Saved Answers Bank</Text>
+            <Text style={styles.subtitle}>Save long-form answers to common questions so the AI uses your exact words.</Text>
+          </View>
+          
+          {Object.entries(profile.saved_answers || {}).map(([q, a], idx) => (
+            <View key={idx} style={[styles.fieldGroup, { paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#2C2C2E' }]}>
+              <TextInput
+                style={[styles.textInput, { marginBottom: 8, borderColor: '#333' }]}
+                value={q}
+                onChangeText={(newQ) => {
+                  const newAnswers = { ...profile.saved_answers };
+                  const val = newAnswers[q];
+                  delete newAnswers[q];
+                  newAnswers[newQ] = val;
+                  updateProfile('saved_answers', newAnswers as any);
+                }}
+                placeholder="Question (e.g. Why work here?)"
+                placeholderTextColor="#5C5C60"
+              />
+              <TextInput
+                style={[styles.textInput, { height: 80, paddingTop: 12, borderColor: '#333' }]}
+                multiline
+                value={a}
+                onChangeText={(newA) => {
+                  const newAnswers = { ...profile.saved_answers, [q]: newA };
+                  updateProfile('saved_answers', newAnswers as any);
+                }}
+                placeholder="Your custom answer..."
+                placeholderTextColor="#5C5C60"
+              />
+              <TouchableOpacity 
+                style={{ marginTop: 8, alignSelf: 'flex-end' }}
+                onPress={() => {
+                  const newAnswers = { ...profile.saved_answers };
+                  delete newAnswers[q];
+                  updateProfile('saved_answers', newAnswers as any);
+                }}
+              >
+                <Text style={{ color: '#FF3B30', fontSize: 13 }}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => {
+              const baseQ = 'New Question';
+              let uniqueQ = baseQ;
+              let i = 1;
+              while ((profile.saved_answers || {})[uniqueQ] !== undefined) {
+                uniqueQ = `${baseQ} ${i}`;
+                i++;
+              }
+              const newAnswers = { ...profile.saved_answers, [uniqueQ]: '' };
+              updateProfile('saved_answers', newAnswers as any);
+            }}
+          >
+            <Text style={{ color: '#007AFF', fontWeight: '600', fontSize: 15 }}>+ Add Custom Answer</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
         <View style={{ height: Math.max(insets.bottom, 100) }} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -169,4 +234,17 @@ const styles = StyleSheet.create({
     borderColor: '#007AFF',
     backgroundColor: '#1C1C1E',
   },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  addButton: {
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderRadius: 12,
+    marginTop: 8,
+  }
 });

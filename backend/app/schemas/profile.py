@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, Dict
 
 
 class UserProfile(BaseModel):
@@ -27,3 +27,6 @@ class UserProfile(BaseModel):
 
     resume: Optional[str] = None
     cover_letter: Optional[str] = None
+
+    # Custom Saved Answers (Q -> A mappings)
+    saved_answers: Optional[Dict[str, str]] = Field(default_factory=dict)
