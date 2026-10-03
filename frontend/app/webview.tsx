@@ -7,7 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../src/lib/supabase';
-import API_URL from '../src/config';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://autofill-app-production.up.railway.app';
 
 export default function JobWebViewScreen() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function JobWebViewScreen() {
   }, []);
 
   const injectExtractionScript = () => {
-    const extractScript = \
+    const extractScript = `
       (function() {
          try {
            function getLabel(el) {
@@ -62,7 +63,7 @@ export default function JobWebViewScreen() {
            window.ReactNativeWebView.postMessage(JSON.stringify({ type: "ERROR", message: e.toString() }));
          }
       })();
-    \;
+    `;
     webViewRef.current?.injectJavaScript(extractScript);
   };
 
@@ -81,11 +82,11 @@ export default function JobWebViewScreen() {
 
         const { data: { session } } = await supabase.auth.getSession();
         
-        const response = await fetch(\\/jobs/analyze-local\, {
+        const response = await fetch(`${API_URL}/jobs/analyze-local`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': \Bearer \\
+            'Authorization': `Bearer ${session?.access_token}`
           },
           body: JSON.stringify({
             fields: data.fields,
@@ -102,9 +103,9 @@ export default function JobWebViewScreen() {
            
            // Build fill script
            const actions = result.agent_response.answers;
-           const fillScript = \
+           const fillScript = `
              (function() {
-                const actions = \;
+                const actions = ${JSON.stringify(actions)};
                 actions.forEach(action => {
                     if (action.answer !== null && action.answer !== undefined) {
                         // Find by id or name
@@ -121,7 +122,7 @@ export default function JobWebViewScreen() {
                 });
                 window.ReactNativeWebView.postMessage(JSON.stringify({ type: "FILL_COMPLETE" }));
              })();
-           \;
+           `;
            
            webViewRef.current?.injectJavaScript(fillScript);
         } else {
