@@ -10,8 +10,19 @@ const api = axios.create({
   timeout: 120000, // 2 minutes — apply can be slow
   headers: {
     'Content-Type': 'application/json',
-    'X-API-KEY': API_KEY,
+    'X-API-KEY': API_KEY, // Fallback for transition
   },
+});
+
+import { supabase } from '../lib/supabase';
+
+// Attach Supabase Token automatically
+api.interceptors.request.use(async (config) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return config;
 });
 
 // Add global error interceptor for user-friendly messages
