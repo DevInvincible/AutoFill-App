@@ -25,48 +25,36 @@ export default function QuestionCard({
   const isAutoAnswered = !question.needs_user_input && question.answer !== null;
   const hasOptions = question.options && question.options.length > 0;
 
+  let sourceTag = 'From your profile';
+  let tagColor = '#4facfe'; // blue
+  if (!isAutoAnswered) {
+    sourceTag = 'Needs you';
+    tagColor = '#FFA726'; // amber
+  } else if (question.confidence < 1.0) {
+    sourceTag = 'AI suggested';
+  }
+
   return (
-    <View
-      style={[
-        styles.card,
-        isAutoAnswered ? styles.autoCard : styles.userCard,
-      ]}
-    >
+    <View style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.badgeContainer}>
-          <Feather
-            name={isAutoAnswered ? "check" : "edit-2"}
-            size={12}
-            color={isAutoAnswered ? Colors.success : Colors.warning}
-          />
-          <Text style={[styles.label, { color: isAutoAnswered ? Colors.success : Colors.warning }]}>
-            {isAutoAnswered ? 'AUTO-ANSWERED' : 'NEEDS INPUT'}
+        <Text style={styles.question}>{question.question}</Text>
+        <View style={[styles.badgeContainer, { backgroundColor: `${tagColor}15` }]}>
+          <Text style={[styles.label, { color: tagColor }]}>
+            {sourceTag}
           </Text>
         </View>
-        {isAutoAnswered && question.confidence > 0 && (
-          <Text style={styles.confidence}>
-            {Math.round(question.confidence * 100)}% Match
-          </Text>
-        )}
       </View>
-
-      {/* Question */}
-      <Text style={styles.question}>{question.question}</Text>
 
       {/* Answer Area */}
       {isAutoAnswered ? (
-        <View style={styles.answerBox}>
-          <Text style={styles.answerText}>
-            {Array.isArray(question.answer)
-              ? question.answer.join(', ')
-              : question.answer}
-          </Text>
-          {question.answer_source && (
-            <Text style={styles.source}>
-              <Feather name="info" size={10} /> {question.answer_source}
-            </Text>
-          )}
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            value={Array.isArray(question.answer) ? question.answer.join(', ') : (question.answer || '')}
+            editable={false}
+          />
+          <Feather name="edit-2" size={14} color="#666" style={{ position: 'absolute', right: 16, top: 18 }} />
         </View>
       ) : hasOptions ? (
         <ScrollView
@@ -99,14 +87,14 @@ export default function QuestionCard({
       ) : (
         <View style={styles.inputWrapper}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: userAnswer ? '#4facfe' : 'rgba(255,255,255,0.1)' }]}
             value={userAnswer}
             onChangeText={onAnswerChange}
             placeholder="Type your answer..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor="#666"
             multiline={question.field_type === 'textarea'}
             numberOfLines={question.field_type === 'textarea' ? 4 : 1}
-            selectionColor={Colors.accentStart}
+            selectionColor="#4facfe"
           />
         </View>
       )}
@@ -116,32 +104,20 @@ export default function QuestionCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  },
-  autoCard: {
-    borderColor: 'rgba(0, 255, 157, 0.2)',
-  },
-  userCard: {
-    borderColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: 12,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 8,
     justifyContent: 'space-between',
   },
   badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 4,
+    marginLeft: 8,
   },
   label: {
     fontSize: 10,
@@ -154,11 +130,11 @@ const styles = StyleSheet.create({
     color: Colors.success,
   },
   question: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '600',
     color: Colors.textPrimary,
-    marginBottom: 16,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   answerBox: {
     backgroundColor: 'rgba(0, 255, 157, 0.05)',
@@ -180,16 +156,21 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   inputWrapper: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#11131A',
+    borderRadius: 8,
   },
   input: {
     padding: 16,
+    minHeight: 56,
+    borderWidth: 1,
+    borderRadius: 8,
     fontSize: 15,
     color: Colors.white,
     fontWeight: '500',
+  },
+  inputDisabled: {
+    borderColor: 'rgba(255,255,255,0.05)',
+    color: '#888',
   },
   optionsRow: {
     flexDirection: 'row',
