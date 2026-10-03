@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 import os
+import httpx
 from app.schemas.job import JobAnalyzeRequest
 from app.services.browser_service import click_apply, fill_job_form
 from app.services.form_agent import resume_form_questions
@@ -19,7 +20,8 @@ api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 APP_API_KEY = os.getenv("APP_API_KEY", "default-dev-secret-key-12345")
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+SUPABASE_URL = os.getenv("EXPO_PUBLIC_SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("EXPO_PUBLIC_SUPABASE_ANON_KEY")
 
 async def verify_auth(
     api_key: str = Security(api_key_header),
@@ -29,25 +31,31 @@ async def verify_auth(
     if api_key == APP_API_KEY:
         return "dev_user"
         
-    # 2. Check for Supabase JWT
+    # 2. Check for Supabase JWT by querying Supabase Auth endpoint
     if bearer and bearer.credentials:
-        if not SUPABASE_JWT_SECRET:
+        if not SUPABASE_URL or not SUPABASE_ANON_KEY:
             raise HTTPException(
                 status_code=500, 
-                detail="SUPABASE_JWT_SECRET not configured on the backend."
+                detail="SUPABASE_URL or SUPABASE_ANON_KEY not configured on the backend."
             )
         try:
-            decoded_token = jwt.decode(
-                bearer.credentials,
-                SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
-                audience="authenticated",
-            )
-            return decoded_token.get("sub") # Return the user ID
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Supabase token expired")
-        except jwt.InvalidTokenError as e:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+            # Verify the token with Supabase directly (bypasses need for legacy JWT secrets)
+            auth_url = f"{SUPABASE_URL}/auth/v1/user"
+            headers = {
+                "Authorization": f"Bearer {bearer.credentials}",
+                "apikey": SUPABASE_ANON_KEY
+            }
+            with httpx.Client() as client:
+                response = client.get(auth_url, headers=headers)
+                
+            if response.status_code == 200:
+                user_data = response.json()
+                return user_data.get("id") # Return the user ID
+            else:
+                raise HTTPException(status_code=401, detail="Invalid or expired Supabase token.")
+                
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=f"Token verification failed: {e}")
 
     # 3. Deny access if neither is valid
     raise HTTPException(
