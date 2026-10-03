@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'react-native';
-import { supabase } from '../src/lib/supabase';
+import { supabase } from '../../src/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
 export default function AccountsScreen() {

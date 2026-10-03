@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   content: {
-    backgroundColor: Colors.cardBg,
+    backgroundColor: Colors.bgCard,
     padding: 32,
     borderRadius: 24,
     borderWidth: 1,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   primaryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accent,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
