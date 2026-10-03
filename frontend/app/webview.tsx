@@ -100,7 +100,7 @@ export default function JobWebViewScreen() {
           },
           body: JSON.stringify({
             fields: data.fields,
-            profile: profile,
+            profile: profile || {},
             saved_answers: profile?.saved_answers || {},
             job_context: { job_title: "Detected Job", company_name: "Detected Company" }
           })

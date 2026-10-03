@@ -19,8 +19,8 @@ class JobFillRequest(BaseModel):
 class LocalFormAnalyzeRequest(BaseModel):
     fields: list
     profile: dict
-    saved_answers: dict
-    job_context: dict
+    saved_answers: dict = {}
+    job_context: dict = {}
 
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
