@@ -49,7 +49,7 @@ def get_browser_page(thread_id: str):
         if browserless_key:
             print("[BROWSER] Connecting to Browserless.io...")
             browser = _active_playwrights[thread_id].chromium.connect_over_cdp(
-                f"wss://chrome.browserless.io?token={browserless_key}"
+                f"wss://chrome.browserless.io?token={browserless_key}&timeout=120000"
             )
             _active_contexts[thread_id] = browser.contexts[0]
         else:
@@ -88,7 +88,7 @@ def get_browser_page(thread_id: str):
         if browserless_key:
             print("[BROWSER] Reconnecting to Browserless.io...")
             browser = _active_playwrights[thread_id].chromium.connect_over_cdp(
-                f"wss://chrome.browserless.io?token={browserless_key}"
+                f"wss://chrome.browserless.io?token={browserless_key}&timeout=120000"
             )
             _active_contexts[thread_id] = browser.contexts[0]
         else:
@@ -500,7 +500,30 @@ Buttons/Links:
     ignored_labels = {"search", "attach", "upload", "select language", "language"}
     
     for attempt in range(max_retries):
-        form_data = extract_form(page)
+        # Guard: check if the page/browser was killed by Browserless before we try to extract
+        try:
+            if page.is_closed():
+                return {
+                    "success": False,
+                    "message": "The browser session was closed before the form could be read. Please try again.",
+                }
+        except Exception:
+            return {
+                "success": False,
+                "message": "The browser session was closed before the form could be read. Please try again.",
+            }
+
+        try:
+            form_data = extract_form(page)
+        except Exception as e:
+            if "TargetClosedError" in str(e) or "closed" in str(e).lower():
+                print(f"[EXTRACT] Browser closed during form extraction on attempt {attempt+1}: {e}")
+                return {
+                    "success": False,
+                    "message": "The browser session was closed while reading the application form. This usually means Browserless timed out. Please try again.",
+                }
+            raise  # Re-raise unexpected errors
+
         mapped_form = map_form_fields(form_data)
         raw_fields = mapped_form.get("fields", []) if mapped_form else []
         
@@ -538,7 +561,11 @@ Buttons/Links:
         if not apply_button:
             if len(fields) == 0:
                 if attempt < max_retries - 1:
-                    page.wait_for_timeout(2000)
+                    try:
+                        page.wait_for_timeout(2000)
+                    except Exception as e:
+                        if "TargetClosedError" in str(e) or "closed" in str(e).lower():
+                            return {"success": False, "message": "The browser session was closed while waiting for the form to load. Please try again."}
                     continue
                 return {
                     "success": False,
@@ -573,7 +600,11 @@ Buttons/Links:
         # If we got here, we clicked Apply, but no job fields appeared yet. Wait and retry!
         if attempt < max_retries - 1:
             print(f"[EXTRACT] No job fields found on attempt {attempt+1}, waiting for modal...")
-            page.wait_for_timeout(2000)
+            try:
+                page.wait_for_timeout(2000)
+            except Exception as e:
+                if "TargetClosedError" in str(e) or "closed" in str(e).lower():
+                    return {"success": False, "message": "The browser session was closed while waiting for the form to load. Please try again."}
 
     if not has_job_fields:
         if apply_button:

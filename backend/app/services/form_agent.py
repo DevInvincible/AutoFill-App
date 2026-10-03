@@ -5,67 +5,11 @@ from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
-import os
-from dotenv import load_dotenv
+from app.services.llm_wrapper import call_llm, get_structured_llm, check_models_on_startup
 
+# Validate all configured models exist at startup and log clearly
+check_models_on_startup()
 
-
-# ============================================================
-# ENV
-# ============================================================
-
-load_dotenv()
-
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-
-# ============================================================
-# LLM  (Groq primary → Gemini fallback)
-# ============================================================
-
-def _build_gemini_llm():
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is not configured")
-    return ChatGoogleGenerativeAI(
-        model=GEMINI_MODEL,
-        google_api_key=GEMINI_API_KEY,
-        max_retries=3,
-    )
-
-def _build_groq_llm():
-    if not GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is not configured")
-    return ChatGroq(
-        model=GROQ_MODEL,
-        groq_api_key=GROQ_API_KEY,
-        max_retries=2,
-    )
-
-# Build the primary LLM — always try Gemini first if provider is gemini,
-# but keep Groq as an option when explicitly set.
-if LLM_PROVIDER == "groq" and GROQ_API_KEY:
-    try:
-        llm = _build_groq_llm()
-        print(f"[LLM] Using Groq: {GROQ_MODEL}")
-    except Exception as _e:
-        print(f"[LLM] Groq init failed ({_e}), falling back to Gemini")
-        llm = _build_gemini_llm()
-else:
-    llm = _build_gemini_llm()
-    print(f"[LLM] Using Gemini: {GEMINI_MODEL}")
-
-# Keep a Gemini fallback ready for runtime errors
-_gemini_fallback_llm = None
-def _get_gemini_fallback():
-    global _gemini_fallback_llm
-    if _gemini_fallback_llm is None:
-        _gemini_fallback_llm = _build_gemini_llm()
-    return _gemini_fallback_llm
 
 
 # ============================================================
@@ -212,7 +156,7 @@ def analyze_questions_node(state: FormAgentState):
             ).model_dump()
         }
 
-    structured_llm = llm.with_structured_output(AgentResponse)
+    structured_llm = get_structured_llm(AgentResponse)
 
     prompt = f"""
 You are an AI job application assistant.
@@ -483,16 +427,18 @@ form_agent = builder.compile(
 
 def analyze_form_questions(
     mapped_form: dict,
-    profile: UserProfile,
+    profile,
     job_context: dict | None = None,
     thread_id: str = "test-thread",
 ):
+    # Normalize: profile may be a UserProfile or a plain dict (from Redis session)
+    profile_data = profile.model_dump() if hasattr(profile, "model_dump") else profile
 
     try:
         result = form_agent.invoke(
             {
                 "mapped_form": mapped_form,
-                "profile": profile.model_dump(),
+                "profile": profile_data,
                 "job_context": job_context or {},
             },
             config={
@@ -503,39 +449,12 @@ def analyze_form_questions(
         )
         return result
     except Exception as e:
-        err_str = str(e)
         print(f"[AI ERROR] form_agent.invoke failed: {e}")
-        
-        # If the primary LLM (Groq) failed due to model/auth issues, retry with Gemini!
-        is_model_error = any(x in err_str for x in ["model_not_found", "model_decommissioned", "404", "401", "invalid_request_error"])
-        if is_model_error and LLM_PROVIDER == "groq":
-            print("[AI RETRY] Groq model error detected. Retrying with Gemini fallback...")
-            import app.services.form_agent as _self_module
-            original_llm = _self_module.llm
-            try:
-                _self_module.llm = _get_gemini_fallback()
-                result = form_agent.invoke(
-                    {
-                        "mapped_form": mapped_form,
-                        "profile": profile.model_dump(),
-                        "job_context": job_context or {},
-                    },
-                    config={
-                        "configurable": {
-                            "thread_id": thread_id + "-gemini-retry"
-                        }
-                    },
-                )
-                print("[AI RETRY] Gemini fallback succeeded!")
-                return result
-            except Exception as e2:
-                print(f"[AI RETRY] Gemini fallback also failed: {e2}")
-            finally:
-                _self_module.llm = original_llm
+        # call_llm() inside the graph already tried all providers.
+        # Fall through to the profile-based manual fallback below.
         
         # Last resort: try to auto-fill from profile where possible,
         # only send truly unknown fields to user as manual input
-        profile_data = profile.model_dump()
         all_fields = mapped_form.get("fields", [])
         fallback_answers = []
         

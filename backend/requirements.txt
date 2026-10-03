@@ -4,6 +4,8 @@ pydantic
 patchright
 langchain-google-genai
 langchain-groq
+langchain-ollama
 langgraph
 python-dotenv
 redis
+httpx

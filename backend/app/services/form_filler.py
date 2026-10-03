@@ -8,10 +8,10 @@ from app.schemas.profile import UserProfile
 
 def prepare_fill_actions(
     mapped_form: dict,
-    profile: UserProfile,
+    profile,
 ) -> list:
 
-    profile_data = profile.model_dump()
+    profile_data = profile.model_dump() if hasattr(profile, "model_dump") else profile
     actions = []
 
     supported_types = {
