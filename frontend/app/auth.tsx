@@ -21,7 +21,7 @@ export default function AuthScreen() {
     if (error) {
       Alert.alert('Sign In Failed', error.message);
     } else if (data.session) {
-      router.replace('/(tabs)');
+      router.back();
     }
   }
 
@@ -36,7 +36,7 @@ export default function AuthScreen() {
     if (error) {
       Alert.alert('Sign Up Failed', error.message);
     } else if (data.session) {
-      router.replace('/(tabs)');
+      router.back();
     } else {
       Alert.alert('Success', 'Check your email for the confirmation link.');
     }

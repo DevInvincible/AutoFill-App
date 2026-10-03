@@ -13,15 +13,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'react-native';
+import { supabase } from '../src/lib/supabase';
+import { Session } from '@supabase/supabase-js';
 
 export default function AccountsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
   const [connected, setConnected] = useState<{ linkedin?: boolean, indeed?: boolean, google?: boolean }>({});
+  const [session, setSession] = useState<Session | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+      });
+
       AsyncStorage.getItem('universal_cookies').then((data) => {
         if (data) {
           try {
@@ -58,6 +65,36 @@ export default function AccountsScreen() {
 
         <Animated.View entering={FadeInUp.duration(600).delay(100).springify()}>
           <View style={styles.providersContainer}>
+            
+            {/* AutoFill Account / Supabase */}
+            <TouchableOpacity 
+              style={styles.providerBtn} 
+              activeOpacity={0.7}
+              onPress={() => {
+                if (!session) {
+                  router.push('/auth');
+                } else {
+                  supabase.auth.signOut().then(() => setSession(null));
+                }
+              }}
+            >
+              <View style={styles.providerIconContainer}>
+                <Ionicons name="person-circle" size={32} color="#fff" />
+              </View>
+              <View style={styles.providerTextContainer}>
+                <Text style={styles.providerTitle}>AutoFill Account</Text>
+                {session ? (
+                  <Text style={styles.connectedText}>Logged in as {session.user.email}</Text>
+                ) : (
+                  <Text style={styles.providerSubtitle}>Login to sync applications</Text>
+                )}
+              </View>
+              {session ? (
+                <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
+              ) : (
+                <Ionicons name="chevron-forward" size={20} color="#666666" />
+              )}
+            </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.providerBtn} 

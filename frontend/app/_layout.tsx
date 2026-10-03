@@ -33,19 +33,7 @@ export default function RootLayout() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!isInitialized) return;
-
-    const inAuthGroup = segments[0] === 'auth';
-
-    if (!session && !inAuthGroup) {
-      // Redirect to the login page.
-      router.replace('/auth');
-    } else if (session && inAuthGroup) {
-      // Redirect away from the login page.
-      router.replace('/(tabs)');
-    }
-  }, [session, isInitialized, segments]);
+  // Removed forced auth redirect so users can explore the app before logging in.
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
