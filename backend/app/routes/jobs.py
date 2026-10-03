@@ -16,6 +16,12 @@ class JobAnswersRequest(BaseModel):
 class JobFillRequest(BaseModel):
     thread_id: str
 
+class LocalFormAnalyzeRequest(BaseModel):
+    fields: list
+    profile: dict
+    saved_answers: dict
+    job_context: dict
+
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -156,9 +162,37 @@ async def fill_form_endpoint(data: JobFillRequest):
 
         return result
     except Exception as e:
-        traceback.print_exc()
         return {
             "success": False,
             "error": str(e),
             "message": "Failed to fill job form.",
+        }
+
+@router.post("/analyze-local")
+async def analyze_local_endpoint(data: LocalFormAnalyzeRequest, user_id: str = Depends(verify_auth)):
+    try:
+        from app.services.form_agent import analyze_form_questions
+        
+        # Extract the fields
+        questions = data.fields
+        
+        # We reuse the exact same AI logic!
+        agent_result = analyze_form_questions(
+            questions=questions,
+            profile=data.profile,
+            saved_answers=data.saved_answers,
+            job_context=data.job_context,
+        )
+        
+        return {
+            "success": True,
+            "agent_response": agent_result,
+            "total_questions": len(questions),
+        }
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to analyze form locally.",
         }
