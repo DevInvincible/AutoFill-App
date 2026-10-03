@@ -49,12 +49,22 @@ export default function JobWebViewScreen() {
 
            const inputs = Array.from(document.querySelectorAll("input:not([type='hidden']):not([type='checkbox']):not([type='radio']), select, textarea")).map(el => {
               if (el.offsetParent === null) return null;
+              
+              let options = [];
+              if (el.tagName.toLowerCase() === 'select') {
+                  options = Array.from(el.querySelectorAll('option')).map(opt => ({
+                      value: opt.value,
+                      label: opt.innerText.trim()
+                  })).filter(opt => opt.value && opt.label);
+              }
+
               return {
                  id: el.id,
                  name: el.name,
-                 type: el.type,
+                 type: el.type || el.tagName.toLowerCase(),
                  placeholder: el.placeholder,
                  label: getLabel(el),
+                 options: options.length > 0 ? options : undefined
               };
            }).filter(Boolean);
 
@@ -111,7 +121,12 @@ export default function JobWebViewScreen() {
                         // Find by id or name
                         let el = null;
                         if (action.id) el = document.getElementById(action.id);
-                        if (!el && action.name) el = document.querySelector('input[name="' + CSS.escape(action.name) + '"]');
+                        if (!el && action.name) {
+                            const escapedName = CSS.escape(action.name);
+                            el = document.querySelector('input[name="' + escapedName + '"]') ||
+                                 document.querySelector('select[name="' + escapedName + '"]') ||
+                                 document.querySelector('textarea[name="' + escapedName + '"]');
+                        }
                         
                         if (el) {
                             el.value = action.answer;
