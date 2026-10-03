@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { Colors } from '../src/theme/colors';
+import { supabase } from '../src/lib/supabase';
+import { Session } from '@supabase/supabase-js';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -16,17 +18,49 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const router = useRouter();
+  const segments = useSegments();
+  const [session, setSession] = useState<Session | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsInitialized(true);
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const inAuthGroup = segments[0] === 'auth';
+
+    if (!session && !inAuthGroup) {
+      // Redirect to the login page.
+      router.replace('/auth');
+    } else if (session && inAuthGroup) {
+      // Redirect away from the login page.
+      router.replace('/(tabs)');
+    }
+  }, [session, isInitialized, segments]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
-      if (data && data.route) {
+      if (data && data.route && session) {
         router.push({ pathname: data.route, params: data.params } as any);
       }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [session]);
+
+  if (!isInitialized) {
+    return null; // Or a splash screen
+  }
 
   return (
     <>
@@ -38,6 +72,7 @@ export default function RootLayout() {
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
     </>
