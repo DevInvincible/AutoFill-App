@@ -30,6 +30,12 @@ SECONDARY_MODEL    = os.getenv("SECONDARY_MODEL",         "gemini-2.0-flash")
 GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY       = os.getenv("GROQ_API_KEY")
 
+# Cloudflare Workers AI — free tier, OpenAI-compatible, never decommissions models
+CF_ACCOUNT_ID      = os.getenv("CF_ACCOUNT_ID")
+CF_API_TOKEN       = os.getenv("CF_API_TOKEN")
+# Default model: phi-2 (small, fast, free). Options: @cf/microsoft/phi-2, @cf/meta/llama-3.1-8b-instruct
+CF_MODEL           = os.getenv("CF_MODEL", "@cf/microsoft/phi-2")
+
 LLM_TIMEOUT        = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
 LLM_MAX_RETRIES    = int(os.getenv("LLM_MAX_RETRIES",     "2"))
 
@@ -60,6 +66,19 @@ def _build_llm(provider: str, model: str):
             raise RuntimeError("GROQ_API_KEY not set")
         from langchain_groq import ChatGroq
         return ChatGroq(model=model, groq_api_key=GROQ_API_KEY, timeout=LLM_TIMEOUT, max_retries=0)
+    elif p == "cloudflare":
+        # Cloudflare Workers AI — free, OpenAI-compatible, zero model decommissioning
+        # Models: @cf/microsoft/phi-2  @cf/meta/llama-3.1-8b-instruct  @cf/google/gemma-7b-it
+        if not CF_ACCOUNT_ID or not CF_API_TOKEN:
+            raise RuntimeError("CF_ACCOUNT_ID and CF_API_TOKEN must be set for Cloudflare provider")
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=model,
+            base_url=f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/ai/v1",
+            api_key=CF_API_TOKEN,
+            timeout=LLM_TIMEOUT,
+            max_retries=0,
+        )
     else:
         raise ValueError(f"Unknown provider: {provider!r}")
 
