@@ -173,21 +173,18 @@ async def analyze_local_endpoint(data: LocalFormAnalyzeRequest, user_id: str = D
     try:
         from app.services.form_agent import analyze_form_questions
         
-        # Extract the fields
-        questions = data.fields
-        
         # We reuse the exact same AI logic!
         agent_result = analyze_form_questions(
-            questions=questions,
+            mapped_form={"fields": data.fields},
             profile=data.profile,
-            saved_answers=data.saved_answers,
             job_context=data.job_context,
+            thread_id="local-webview"
         )
         
         return {
             "success": True,
             "agent_response": agent_result,
-            "total_questions": len(questions),
+            "total_questions": len(data.fields),
         }
     except Exception as e:
         traceback.print_exc()

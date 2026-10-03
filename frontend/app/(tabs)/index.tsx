@@ -93,10 +93,11 @@ export default function HomeScreen() {
   const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntent();
 
   useEffect(() => {
-    if (hasShareIntent && shareIntent.value) {
+    const intentValue = (shareIntent as any)?.value || (shareIntent as any)?.text || '';
+    if (hasShareIntent && intentValue) {
       // Clean up text if they shared a URL with some text (e.g., from a tweet or a post)
-      const urlMatch = shareIntent.value.match(/https?:\/\/[^\s]+/);
-      const incomingUrl = urlMatch ? urlMatch[0] : shareIntent.value;
+      const urlMatch = intentValue.match(/https?:\/\/[^\s]+/);
+      const incomingUrl = urlMatch ? urlMatch[0] : intentValue;
       setUrl(incomingUrl);
       resetShareIntent();
       
