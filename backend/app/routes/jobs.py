@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Security, status
-from fastapi.security import APIKeyHeader
+from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
+import jwt
 import os
 from app.schemas.job import JobAnalyzeRequest
 from app.services.browser_service import click_apply, fill_job_form
@@ -14,20 +15,50 @@ class JobAnswersRequest(BaseModel):
 class JobFillRequest(BaseModel):
     thread_id: str
 
-api_key_header = APIKeyHeader(name="X-API-KEY")
-APP_API_KEY = os.getenv("APP_API_KEY", "default-dev-secret-key-12345")
+api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
+bearer_scheme = HTTPBearer(auto_error=False)
 
-async def verify_api_key(api_key: str = Security(api_key_header)):
-    if api_key != APP_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API Key",
-        )
+APP_API_KEY = os.getenv("APP_API_KEY", "default-dev-secret-key-12345")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+
+async def verify_auth(
+    api_key: str = Security(api_key_header),
+    bearer: HTTPAuthorizationCredentials = Security(bearer_scheme)
+):
+    # 1. Check for legacy shared API Key (used for early dev/testing)
+    if api_key == APP_API_KEY:
+        return "dev_user"
+        
+    # 2. Check for Supabase JWT
+    if bearer and bearer.credentials:
+        if not SUPABASE_JWT_SECRET:
+            raise HTTPException(
+                status_code=500, 
+                detail="SUPABASE_JWT_SECRET not configured on the backend."
+            )
+        try:
+            decoded_token = jwt.decode(
+                bearer.credentials,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+            )
+            return decoded_token.get("sub") # Return the user ID
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Supabase token expired")
+        except jwt.InvalidTokenError as e:
+            raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+
+    # 3. Deny access if neither is valid
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Valid X-API-KEY or Bearer token required.",
+    )
 
 router = APIRouter(
     prefix="/jobs",
     tags=["Jobs"],
-    dependencies=[Depends(verify_api_key)],
+    dependencies=[Depends(verify_auth)],
 )
 
 
