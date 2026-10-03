@@ -10,7 +10,13 @@ import { supabase } from '../src/lib/supabase';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://autofill-app-production.up.railway.app';
 
-export default function JobWebViewScreen({ hiddenUrl }: { hiddenUrl?: string }) {
+export default function JobWebViewScreen({ 
+  hiddenUrl,
+  onProgress
+}: { 
+  hiddenUrl?: string;
+  onProgress?: (msg: string, pct: number) => void;
+}) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ url: string }>();
@@ -90,6 +96,7 @@ export default function JobWebViewScreen({ hiddenUrl }: { hiddenUrl?: string }) 
 
         setStatus('AI is analyzing form...');
         setLoading(true);
+        if (onProgress) onProgress('AI is analyzing form...', 40);
 
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -111,6 +118,7 @@ export default function JobWebViewScreen({ hiddenUrl }: { hiddenUrl?: string }) 
         
         if (result.success && result.agent_response && result.agent_response.answers) {
            setStatus('Filling form...');
+           if (onProgress) onProgress('Filling form...', 70);
            
            // Build fill script
            const actions = result.agent_response.answers;
@@ -162,6 +170,7 @@ export default function JobWebViewScreen({ hiddenUrl }: { hiddenUrl?: string }) 
       } else if (data.type === "FILL_COMPLETE") {
         setLoading(false);
         setStatus('Form filled! Review and submit manually.');
+        if (onProgress) onProgress('Form filled! Proceeding...', 90);
       } else if (data.type === "ERROR") {
         console.error("WebView Error:", data.message);
       }
@@ -177,7 +186,10 @@ export default function JobWebViewScreen({ hiddenUrl }: { hiddenUrl?: string }) 
           ref={webViewRef}
           source={{ uri: url || 'https://www.indeed.com' }}
           onMessage={handleMessage}
-          onLoadEnd={() => setTimeout(injectExtractionScript, 2000)}
+          onLoadEnd={() => {
+             if (onProgress) onProgress('Auto-scanning form...', 20);
+             setTimeout(injectExtractionScript, 2000);
+          }}
         />
       </View>
     );

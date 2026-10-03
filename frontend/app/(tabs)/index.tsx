@@ -501,7 +501,10 @@ export default function HomeScreen() {
 
         <View style={{ height: Math.max(insets.bottom, 100) }} />
       </ScrollView>
-      {backgroundUrl && <JobWebViewScreen hiddenUrl={backgroundUrl} />}
+      {backgroundUrl && <JobWebViewScreen hiddenUrl={backgroundUrl} onProgress={(msg, pct) => {
+        setActiveProcess(prev => prev ? { ...prev, label: msg, progress: pct } : { label: msg, progress: pct, jobUrl: backgroundUrl });
+        RNAnimated.timing(progressAnim, { toValue: pct / 100, duration: 400, useNativeDriver: false }).start();
+      }} />}
     </KeyboardAvoidingView>
   );
 }
